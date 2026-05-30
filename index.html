@@ -173,6 +173,13 @@ input,select,textarea{font-family:inherit}
 }
 .theme-toggle:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .theme-toggle svg{width:20px;height:20px}
+.lang-toggle{
+  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  background:var(--glass);border:1px solid var(--glass-border);
+  font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:14px;color:var(--txt-1);
+  transition:all .25s;letter-spacing:.5px;
+}
+.lang-toggle:hover{transform:translateY(-2px);box-shadow:var(--shadow);color:var(--txt-0)}
 
 /* mobile hamburger */
 .hamburger{display:none;width:44px;height:44px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);place-items:center}
@@ -257,6 +264,35 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 .btn-icon.note-open{background:var(--grad-accent);color:#fff;border-color:transparent}
 .consistency{position:relative}
 .dl-tab.active{background:var(--grad-accent);color:#fff;border-color:transparent}
+/* ---- Limitless-style visual card grid ---- */
+.card-grid-wrap{max-height:66vh;overflow-y:auto;padding:4px 2px}
+.cg-section{margin-bottom:22px}
+.cg-head{display:flex;align-items:center;gap:9px;margin-bottom:12px;font-family:'Chakra Petch';font-size:15px;color:var(--txt-0)}
+.cg-head::before{content:"";width:4px;height:18px;border-radius:3px;background:var(--accent)}
+.cg-head b{color:var(--accent);font-size:14px}
+.cg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:14px 12px}
+.cg-card{position:relative;transition:transform .16s}
+.cg-card:hover{transform:translateY(-5px) scale(1.04);z-index:3}
+.cg-img{position:relative;border-radius:7px;overflow:hidden;aspect-ratio:734/1024;background:linear-gradient(160deg,#1c2842,#141d33);display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.cg-img img{width:100%;height:100%;object-fit:cover;display:block}
+.cg-ph{font-size:10px;color:var(--txt-2);text-align:center;padding:8px;line-height:1.3}
+.cg-miss{border:1px solid rgba(120,160,255,.2)}
+/* floating glass quantity chip, top-right, colored by section */
+.cg-chip{position:absolute;top:6px;right:6px;display:inline-flex;align-items:center;gap:1px;
+  font-family:'Chakra Petch';font-weight:700;font-size:14px;line-height:1;color:#fff;
+  padding:5px 9px;border-radius:10px;backdrop-filter:blur(8px) saturate(150%);
+  -webkit-backdrop-filter:blur(8px) saturate(150%);
+  border:1px solid rgba(255,255,255,.35);box-shadow:0 3px 10px rgba(0,0,0,.45);
+  transition:transform .16s}
+.cg-chip i{font-style:normal;font-size:10px;opacity:.8;margin-right:1px}
+.cg-card:hover .cg-chip{transform:scale(1.08)}
+.cg-chip-pk{background:linear-gradient(135deg,rgba(91,140,255,.92),rgba(61,125,202,.82))}
+.cg-chip-tr{background:linear-gradient(135deg,rgba(255,203,5,.92),rgba(255,154,61,.82));color:#1a1408;border-color:rgba(255,255,255,.5)}
+.cg-chip-en{background:linear-gradient(135deg,rgba(47,208,122,.92),rgba(27,166,201,.82))}
+/* section header accent colors */
+.cg-head-pk::before{background:var(--accent)} .cg-head-pk b{color:var(--accent)}
+.cg-head-tr::before{background:var(--accent-2)} .cg-head-tr b{color:var(--accent-2)}
+.cg-head-en::before{background:var(--win)} .cg-head-en b{color:var(--win)}
 /* ---- dashboard deck scope selector ---- */
 .dash-scope{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .dash-scope label{font-size:13px;color:var(--txt-2);font-weight:600;white-space:nowrap}
@@ -339,6 +375,7 @@ tbody tr:hover{background:var(--bg-2)}
 .modal-scrim{position:fixed;inset:0;background:rgba(4,8,18,.7);backdrop-filter:blur(4px);z-index:100;display:none;place-items:center;padding:20px;animation:fade .2s}
 .modal-scrim.open{display:grid}
 .modal{width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:26px;animation:pop .3s cubic-bezier(.2,.8,.3,1)}
+.modal.wide{width:min(880px,100%)}
 .modal h2{font-size:20px;margin-bottom:6px}
 .modal .sub{color:var(--txt-2);font-size:13px;margin-bottom:20px}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
@@ -506,6 +543,7 @@ tbody tr:hover{background:var(--bg-2)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
           <span class="btn-label">Log Match</span>
         </button>
+        <button class="lang-toggle" id="langToggle" title="English / Español" onclick="toggleLang()">ES</button>
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"></button>
       </div>
     </div>
@@ -555,6 +593,236 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => (
 const pct = (n, d) => d > 0 ? Math.round((n / d) * 1000) / 10 : 0;        // one-decimal %
 const fmtDate = (iso) => { try { return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); } catch { return iso; } };
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+/* ------------------------------------------------------------------ */
+/* 0b. INTERNATIONALISATION (English / Spanish)                       */
+/* ---------------------------------------------------------------------
+   Every user-facing UI string is keyed here. t("Some text") returns the
+   current language's version (falling back to the English key itself if
+   no translation exists). Your own data (deck names, notes, etc.) is
+   never translated. Language is stored in State.settings.lang.
+   --------------------------------------------------------------------- */
+const I18N = {
+  es: {
+    // nav + topbar
+    "Dashboard": "Panel",
+    "Decks": "Mazos",
+    "Log Match": "Registrar partida",
+    "Match History": "Historial",
+    "Settings": "Ajustes",
+    "Log a Match": "Registrar partida",
+    "Edit Match ": "Editar partida ",
+    "TCG Analytics": "Análisis TCG",
+    "Synced": "Sincronizado", "Syncing…": "Sincronizando…", "Sync error": "Error de sync", "Offline": "Sin conexión",
+    "Local-first · v1.1": "Local · v1.1",
+    "Data stays in this browser": "Los datos quedan en este navegador",
+    "Sign out": "Cerrar sesión",
+    // page subtitles
+    "Your competitive overview at a glance": "Tu resumen competitivo de un vistazo",
+    "Manage your archetypes and decklists": "Gestiona tus arquetipos y listas",
+    "Record a new game result": "Registra el resultado de una partida",
+    "Search, filter, and edit past matches": "Busca, filtra y edita partidas",
+    "Backup, import, export, and reset your data": "Copia, importa, exporta y reinicia tus datos",
+    "Edit Match": "Editar partida",
+    "Update this game result": "Actualiza este resultado",
+    // dashboard
+    "Showing stats for": "Mostrando estadísticas de",
+    "🏆 All decks (combined)": "🏆 Todos los mazos (combinado)",
+    "✕ Clear": "✕ Quitar",
+    "Total Matches": "Partidas totales", "Matches": "Partidas",
+    "Wins": "Victorias", "Losses": "Derrotas", "Draws": "Empates",
+    "decisive victories": "victorias decisivas",
+    "Overall Win %": "% victorias global", "Win %": "% victorias",
+    "Active Decks": "Mazos activos", "in rotation": "en rotación",
+    "decks tracked": "mazos registrados",
+    "Brick Rate": "Tasa de brick", "bricked games": "partidas con brick",
+    "Performance Splits": "Desglose de rendimiento",
+    "Going First": "Saliendo primero", "Going Second": "Saliendo segundo",
+    "Online": "En línea", "In Person": "Presencial",
+    "Best of 1": "Al mejor de 1", "Best of 3": "Al mejor de 3",
+    "games": "partidas",
+    "Visual Analytics": "Gráficas",
+    "📈 Win / Loss Trend": "📈 Tendencia de victorias",
+    "🏆 Win % by Deck": "🏆 % victorias por mazo",
+    "🆚 Win % vs Opponents": "🆚 % victorias vs rivales",
+    "🌐 Online vs In-Person": "🌐 En línea vs presencial",
+    "🎲 First vs Second": "🎲 Primero vs segundo",
+    "Deck Rankings": "Ranking de mazos",
+    "Deck": "Mazo", "Record": "Récord", "In-Person": "Presencial",
+    "1st": "1º", "2nd": "2º",
+    "No matches yet": "Aún no hay partidas",
+    "Log your first match to unlock your analytics dashboard.": "Registra tu primera partida para ver el panel.",
+    "Cumulative Win %": "% victorias acumulado",
+    "Went First": "Salió primero", "Went Second": "Salió segundo",
+    // decks page
+    "Your Decks": "Tus mazos",
+    "New Deck": "Nuevo mazo",
+    "No decks yet": "Aún no hay mazos",
+    "Create your first deck and paste a decklist to start tracking.": "Crea tu primer mazo y pega una lista para empezar.",
+    "Create Deck": "Crear mazo",
+    "★ TOP DECK": "★ MEJOR MAZO",
+    "decklist consistency": "consistencia de la lista",
+    "Good opener": "Buena mano inicial",
+    "Mulligan": "Mulligan", "Brick est.": "Brick est.", "Bricked (real)": "Brick (real)",
+    "No decklist — add one for brick math": "Sin lista — añade una para el cálculo",
+    "Edit": "Editar", "Decklist": "Lista", "Delete": "Eliminar",
+    "Created": "Creado",
+    // deck modal
+    "Paste a decklist (PTCG Live / Limitless format). The consistency panel updates live as you type.":
+      "Pega una lista (formato PTCG Live / Limitless). El panel de consistencia se actualiza al escribir.",
+    "Deck Name": "Nombre del mazo",
+    "Decklist": "Lista de cartas",
+    "(optional)": "(opcional)",
+    "⬆ Drop a .txt file here or click to upload": "⬆ Suelta un archivo .txt o haz clic para subir",
+    "Cancel": "Cancelar", "Save Changes": "Guardar cambios",
+    "🧪 Consistency Analysis": "🧪 Análisis de consistencia",
+    "cards": "cartas",
+    "Basics": "Básicos", "Supporters": "Partidarios", "Ball/Search": "Búsqueda", "Draw items": "Robo", "Engine": "Motor",
+    "Mulligan chance (no Basic in opener)": "Prob. de mulligan (sin Básico inicial)",
+    "Healthy — low mulligan risk.": "Saludable — bajo riesgo de mulligan.",
+    "A bit high; consider more Basics.": "Algo alto; considera más Básicos.",
+    "Too high — add Basic Pokémon.": "Muy alto — añade Pokémon Básicos.",
+    "Brick estimate (legal but no engine)": "Estimación de brick (legal pero sin motor)",
+    "Hand has a Basic but no Supporter / search / draw to develop.": "Mano con Básico pero sin Partidario / búsqueda / robo.",
+    "Good opener (Basic + an engine card)": "Buena mano (Básico + carta de motor)",
+    "Chance your 7 can actually start doing something.": "Prob. de que tus 7 cartas puedan arrancar.",
+    "Opens with a Supporter": "Abre con Partidario",
+    "of games.": "de las partidas.",
+    "Adjust counts manually": "Ajustar conteos manualmente",
+    "Basic Pokémon": "Pokémon Básicos", "Engine cards": "Cartas de motor",
+    "Auto-detected from the list — override if the parser miscounted (e.g. Stage 1/2 lines or unusual card names).":
+      "Detectado de la lista — ajústalo si el conteo es incorrecto (evoluciones o nombres raros).",
+    "Paste a decklist above to see mulligan & brick probabilities.":
+      "Pega una lista arriba para ver las probabilidades de mulligan y brick.",
+    "New Deck ": "Nuevo mazo ",
+    // decklist viewer
+    "🖼️ Cards": "🖼️ Cartas", "📄 Text": "📄 Texto",
+    "Close": "Cerrar", "Copy text": "Copiar texto", "⬇ Save as JPG": "⬇ Guardar como JPG",
+    "no decklist": "sin lista",
+    "— no decklist saved —": "— no hay lista guardada —",
+    "Loading cards…": "Cargando cartas…",
+    "No decklist to display.": "No hay lista para mostrar.",
+    "Pokémon": "Pokémon", "Trainer": "Entrenador", "Energy": "Energía",
+    // logger
+    "Create a deck first": "Crea un mazo primero",
+    "You need at least one deck before logging matches.": "Necesitas al menos un mazo para registrar partidas.",
+    "Go to Decks": "Ir a Mazos",
+    "✏ Editing match": "✏ Editando partida",
+    "Deck Used": "Mazo usado", "Date": "Fecha",
+    "Opponent Deck": "Mazo rival", "Opponent": "Rival",
+    "Event": "Evento", "Format": "Formato", "Play Position": "Posición", "Match Type": "Tipo", "Result": "Resultado",
+    "Game Score": "Marcador", "(optional, BO3)": "(opcional, BO3)", "— not recorded —": "— no registrado —",
+    "Did your deck brick?": "¿Tu mazo hizo brick?",
+    "(dead / unplayable opening)": "(mano muerta / injugable)",
+    "👍 No brick": "👍 Sin brick", "🧱 Bricked": "🧱 Brick",
+    "Notes": "Notas",
+    "Key plays, mulligans, prize trades, lessons learned...": "Jugadas clave, mulligans, premios, lecciones...",
+    "Extra Match Info": "Información extra",
+    "(matchup notes, tech cards, sideboard plan, things to remember)": "(notas de emparejamiento, cartas tech, plan, recordatorios)",
+    "Save Match": "Guardar partida", "Clear": "Limpiar",
+    "Best of 1 ": "Al mejor de 1 ", "Best of 3 ": "Al mejor de 3 ",
+    "Win": "Victoria", "Loss": "Derrota", "Draw": "Empate",
+    "Match Win": "Victoria de partida", "Match Loss": "Derrota de partida",
+    // history
+    "No matches recorded": "No hay partidas registradas",
+    "Your logged matches will appear here.": "Tus partidas aparecerán aquí.",
+    "Search opponent / event": "Buscar rival / evento",
+    "Type to search...": "Escribe para buscar...",
+    "All decks": "Todos los mazos", "All": "Todos",
+    "Type": "Tipo", "Position": "Posición", "Brick": "Brick",
+    "Wins ": "Victorias ", "Losses ": "Derrotas ", "Draws ": "Empates ",
+    "From date": "Desde", "To date": "Hasta",
+    "Delete Selected": "Eliminar seleccionadas",
+    "selected": "seleccionadas",
+    "No matches match your filters": "Ninguna partida coincide con los filtros",
+    "Fmt": "Form.", "Pos": "Pos.",
+    // settings
+    "Cloud Sync": "Sincronización en la nube",
+    "Sync now": "Sincronizar ahora",
+    "Export Data": "Exportar datos",
+    "Download a complete JSON snapshot of every deck and match. Use this to migrate between browsers or keep an archive.":
+      "Descarga una copia JSON de todos los mazos y partidas. Útil para migrar o archivar.",
+    "Export as JSON": "Exportar como JSON", "One-Click Backup": "Copia rápida",
+    "Import Data": "Importar datos",
+    "Load a previously exported JSON file. This replaces all current data, so back up first if needed.":
+      "Carga un archivo JSON exportado. Reemplaza todos los datos actuales, haz copia antes.",
+    "⬆ Drop a .json file here or click to choose": "⬆ Suelta un archivo .json o haz clic para elegir",
+    "Appearance": "Apariencia",
+    "Toggle between the default dark esports theme and a clean light theme.": "Cambia entre el tema oscuro y el claro.",
+    "Danger Zone": "Zona de peligro",
+    "Permanently delete all decks and matches from this browser. This cannot be undone.":
+      "Elimina permanentemente todos los mazos y partidas de este navegador. No se puede deshacer.",
+    "Reset All Data": "Borrar todo", "Reload Demo Data": "Cargar datos demo",
+    "Storage Used": "Almacenamiento", "in LocalStorage": "en LocalStorage",
+    // modals / toasts
+    "Delete Deck?": "¿Eliminar mazo?",
+    "Delete Match?": "¿Eliminar partida?",
+    "This permanently removes the match record.": "Esto elimina la partida permanentemente.",
+    "Delete Selected Matches?": "¿Eliminar partidas seleccionadas?",
+    "Reset Everything?": "¿Borrar todo?",
+    "Confirm": "Confirmar", "Delete All": "Borrar todo",
+    "Reload Demo Data?": "¿Cargar datos demo?",
+    "Import & Replace?": "¿Importar y reemplazar?",
+    "Deck created.": "Mazo creado.", "Deck updated.": "Mazo actualizado.", "Deck deleted.": "Mazo eliminado.",
+    "Match logged! 🎉": "¡Partida registrada! 🎉", "Match updated.": "Partida actualizada.", "Match deleted.": "Partida eliminada.",
+    "Deck name is required.": "El nombre del mazo es obligatorio.",
+    "Select a deck.": "Selecciona un mazo.", "Pick a date.": "Elige una fecha.", "Select a result.": "Selecciona un resultado.",
+    "Decklist copied.": "Lista copiada.", "Copy failed.": "Error al copiar.",
+    "Exported JSON.": "JSON exportado.", "Backup downloaded.": "Copia descargada.",
+    "All data cleared.": "Todos los datos borrados.", "Demo data loaded.": "Datos demo cargados.",
+    "Data imported successfully.": "Datos importados correctamente.",
+    "Building deck image…": "Generando imagen…", "Deck image saved as JPG.": "Imagen guardada como JPG.",
+    "Running in local-only mode.": "Modo solo local.",
+    "Synced to cloud.": "Sincronizado.", "Sync failed.": "Falló la sincronización.",
+    "Sign in": "Iniciar sesión",
+    "🧪 Consistency Analysis": "🧪 Análisis de consistencia",
+    "Paste a decklist (PTCG Live / Limitless format). The consistency panel updates live as you type.":
+      "Pega una lista (formato PTCG Live / Limitless). El panel de consistencia se actualiza al escribir.",
+  }
+};
+
+/** Current UI language ("en" or "es"). */
+function lang() { return (State.settings && State.settings.lang) || "en"; }
+/** Translate a UI string for the current language (English keys are the source). */
+function t(s) {
+  if (lang() === "en") return s;
+  const dict = I18N[lang()] || {};
+  return (s in dict) ? dict[s] : s;
+}
+/** Toggle EN <-> ES and re-render everything. */
+function toggleLang() {
+  State.settings.lang = lang() === "en" ? "es" : "en";
+  save();
+  applyStaticI18n();
+  refreshAll();
+  applyTheme();           // re-render dashboard charts with translated labels
+  const b = $("#langToggle"); if (b) b.textContent = lang() === "en" ? "ES" : "EN";
+}
+/** Apply translations to the static (non-rendered) HTML: nav + footer. */
+function applyStaticI18n() {
+  // nav labels (preserve any trailing count badge element)
+  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", settings: "Settings" };
+  $$(".nav-item").forEach(n => {
+    const page = n.dataset.page, label = navMap[page];
+    // first text node holds the label
+    for (const node of n.childNodes) {
+      if (node.nodeType === 3 && node.textContent.trim()) { node.textContent = " " + t(label) + " "; break; }
+    }
+  });
+  // brand tagline
+  const tag = $(".brand-text span"); if (tag) tag.textContent = t("TCG Analytics");
+  // quick-log button label
+  const ql = $("#quickLog .btn-label"); if (ql) ql.textContent = t("Log Match");
+  // sync pill text reflects current status via setSyncStatus, but refresh footer:
+  const footTag = $("#footerTagline");
+  if (footTag) footTag.innerHTML = `${t("Local-first · v1.1")}<br/>${t("Data stays in this browser")}`;
+  const signout = $("#accountBox .btn"); if (signout) signout.textContent = t("Sign out");
+  // page title for the active page
+  if (typeof currentPage !== "undefined" && PAGE_META[currentPage]) {
+    const [ti, su] = PAGE_META[currentPage];
+    const pt = $("#pageTitle"); if (pt) pt.innerHTML = `<h1>${t(ti)}</h1><p>${t(su)}</p>`;
+  }
+}
 
 /* Result classification helpers — normalise BO1 + BO3 into win/loss/draw */
 function isWin(m)  { return m.result === "Win" || m.result === "Match Win"; }
@@ -662,7 +930,7 @@ function setSyncStatus(status) {
   if (pill) pill.style.display = Cloud.enabled && Cloud.user ? "inline-flex" : "none";
   if (dot) dot.className = "sync-dot " + cls;
   if (foot) foot.className = "sync-dot " + cls;
-  const t = $("#syncText"); if (t) t.textContent = text;
+  const txtEl = $("#syncText"); if (txtEl) txtEl.textContent = t(text);
 }
 
 /* ---- auth flow ---- */
@@ -1284,7 +1552,7 @@ const deckName = (id) => State.decks.find(d => d.id === id)?.name || "— delete
 function toast(msg, kind = "info") {
   const el = document.createElement("div");
   el.className = `toast ${kind}`;
-  el.textContent = msg;
+  el.textContent = t(msg);
   $("#toastWrap").appendChild(el);
   setTimeout(() => { el.style.opacity = "0"; el.style.transform = "translateX(30px)"; el.style.transition = "all .3s"; }, 2600);
   setTimeout(() => el.remove(), 2950);
@@ -1314,8 +1582,8 @@ function navigate(page) {
   $$(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.page === page));
   $$(".page").forEach(p => p.classList.remove("active"));
   $(`#page-${page}`).classList.add("active");
-  const [t, s] = PAGE_META[page];
-  $("#pageTitle").innerHTML = `<h1>${t}</h1><p>${s}</p>`;
+  const [title, sub] = PAGE_META[page];
+  $("#pageTitle").innerHTML = `<h1>${t(title)}</h1><p>${t(sub)}</p>`;
   renderPage(page);
   closeMobileNav();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1339,9 +1607,9 @@ function destroyCharts() { Object.values(charts).forEach(c => { try { c.destroy(
 
 function statCard(label, value, sub, cls = "") {
   return `<div class="stat-card glass ${cls}">
-    <div class="label">${label}</div>
+    <div class="label">${t(label)}</div>
     <div class="value">${value}</div>
-    ${sub ? `<div class="sub">${sub}</div>` : ""}
+    ${sub ? `<div class="sub">${t(sub)}</div>` : ""}
   </div>`;
 }
 
@@ -1350,7 +1618,7 @@ function renderDashboard() {
 
   if (State.matches.length === 0) {
     el.innerHTML = emptyState("🎴", "No matches yet", "Log your first match to unlock your analytics dashboard.",
-      `<button class="btn btn-primary" onclick="navigate('logger')">Log a Match</button>`);
+      `<button class="btn btn-primary" onclick="navigate('logger')">${t("Log a Match")}</button>`);
     destroyCharts();
     return;
   }
@@ -1365,20 +1633,20 @@ function renderDashboard() {
   // Deck selector pill row.
   const selector = `
     <div class="dash-scope">
-      <label>Showing stats for</label>
+      <label>${t("Showing stats for")}</label>
       <select class="select" id="dashDeck" onchange="setDashFilter(this.value)">
-        <option value="" ${!scoped ? "selected" : ""}>🏆 All decks (combined)</option>
+        <option value="" ${!scoped ? "selected" : ""}>${t("🏆 All decks (combined)")}</option>
         ${State.decks.map(d => `<option value="${d.id}" ${dashFilter === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}
       </select>
-      ${scoped ? `<button class="btn btn-ghost btn-sm" onclick="setDashFilter('')">✕ Clear</button>` : ""}
+      ${scoped ? `<button class="btn btn-ghost btn-sm" onclick="setDashFilter('')">${t("✕ Clear")}</button>` : ""}
     </div>`;
 
   // First tile changes label depending on scope.
   const firstTile = scoped
     ? statCard("Matches", g.all.total, esc(deck.name), "accent")
-    : statCard("Total Matches", g.all.total, `${State.decks.length} decks tracked`, "accent");
+    : statCard("Total Matches", g.all.total, `${State.decks.length} ${t("decks tracked")}`, "accent");
   const lastTile = scoped
-    ? statCard("Brick Rate", g.brickRate + "%", `${g.bricked} bricked games`, g.brickRate <= 12 ? "win" : "loss")
+    ? statCard("Brick Rate", g.brickRate + "%", `${g.bricked} ${t("bricked games")}`, g.brickRate <= 12 ? "win" : "loss")
     : statCard("Active Decks", State.decks.length, "in rotation", "accent");
 
   el.innerHTML = selector + `
@@ -1395,7 +1663,7 @@ function renderDashboard() {
     ${scoped ? deckConsistencyBanner(deck) : ""}
 
     <!-- Split metrics -->
-    <div class="section-head"><h2><span class="dot"></span> Performance Splits</h2></div>
+    <div class="section-head"><h2><span class="dot"></span> ${t("Performance Splits")}</h2></div>
     <div class="grid stat-grid">
       ${splitCard("Going First", g.first)}
       ${splitCard("Going Second", g.second)}
@@ -1406,23 +1674,23 @@ function renderDashboard() {
     </div>
 
     <!-- Charts -->
-    <div class="section-head"><h2><span class="dot"></span> Visual Analytics</h2></div>
+    <div class="section-head"><h2><span class="dot"></span> ${t("Visual Analytics")}</h2></div>
     <div class="grid chart-grid">
-      <div class="chart-card glass"><h3>📈 Win / Loss Trend</h3><div class="chart-wrap"><canvas id="cTrend"></canvas></div></div>
+      <div class="chart-card glass"><h3>${t("📈 Win / Loss Trend")}</h3><div class="chart-wrap"><canvas id="cTrend"></canvas></div></div>
       ${scoped
-        ? `<div class="chart-card glass"><h3>🆚 Win % vs Opponents</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>`
-        : `<div class="chart-card glass"><h3>🏆 Win % by Deck</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>`}
-      <div class="chart-card glass"><h3>🌐 Online vs In-Person</h3><div class="chart-wrap"><canvas id="cType"></canvas></div></div>
-      <div class="chart-card glass"><h3>🎲 First vs Second</h3><div class="chart-wrap"><canvas id="cPos"></canvas></div></div>
+        ? `<div class="chart-card glass"><h3>${t("🆚 Win % vs Opponents")}</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>`
+        : `<div class="chart-card glass"><h3>${t("🏆 Win % by Deck")}</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>`}
+      <div class="chart-card glass"><h3>${t("🌐 Online vs In-Person")}</h3><div class="chart-wrap"><canvas id="cType"></canvas></div></div>
+      <div class="chart-card glass"><h3>${t("🎲 First vs Second")}</h3><div class="chart-wrap"><canvas id="cPos"></canvas></div></div>
     </div>
 
     ${scoped ? "" : `
     <!-- Deck rankings (only in combined view) -->
-    <div class="section-head"><h2><span class="dot"></span> Deck Rankings</h2></div>
+    <div class="section-head"><h2><span class="dot"></span> ${t("Deck Rankings")}</h2></div>
     <div class="glass" style="padding:8px 4px">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Deck</th><th>Record</th><th>Win %</th><th>Online</th><th>In-Person</th><th>1st</th><th>2nd</th></tr></thead>
+          <thead><tr><th>#</th><th>${t("Deck")}</th><th>${t("Record")}</th><th>${t("Win %")}</th><th>${t("Online")}</th><th>${t("In-Person")}</th><th>${t("1st")}</th><th>${t("2nd")}</th></tr></thead>
           <tbody>${rankedDecks().map((r, i) => `
             <tr style="cursor:pointer" onclick="setDashFilter('${r.deck.id}')">
               <td><span class="pill ${i===0?'win':'muted'}">${i+1}</span></td>
@@ -1451,24 +1719,24 @@ function deckConsistencyBanner(deck) {
   if (!rep.total) return "";
   const chip = (label, val, good, ok) => {
     const col = val <= good ? "var(--win)" : val <= ok ? "var(--draw)" : "var(--loss)";
-    return `<div class="cons-chip"><span>${label}</span><b style="color:${col}">${val}%</b></div>`;
+    return `<div class="cons-chip"><span>${t(label)}</span><b style="color:${col}">${val}%</b></div>`;
   };
   return `<div class="glass cons-banner">
-    <div class="cons-title">🧪 ${esc(deck.name)} — decklist consistency</div>
+    <div class="cons-title">🧪 ${esc(deck.name)} — ${t("decklist consistency")}</div>
     ${chip("Mulligan", rep.mulligan, 9, 16)}
     ${chip("Brick est.", rep.brick, 8, 15)}
-    <div class="cons-chip"><span>Good opener</span><b style="color:${rep.good>=70?'var(--win)':'var(--draw)'}">${rep.good}%</b></div>
-    <div class="cons-chip"><span>Basics</span><b>${rep.basics}</b></div>
+    <div class="cons-chip"><span>${t("Good opener")}</span><b style="color:${rep.good>=70?'var(--win)':'var(--draw)'}">${rep.good}%</b></div>
+    <div class="cons-chip"><span>${t("Basics")}</span><b>${rep.basics}</b></div>
   </div>`;
 }
 
-function splitCard(label, t) {
-  const ring = `<div class="ring" style="--p:${t.wr};--c:${wrColor(t.wr)}"><span>${t.wr}%</span></div>`;
+function splitCard(label, st) {
+  const ring = `<div class="ring" style="--p:${st.wr};--c:${wrColor(st.wr)}"><span>${st.wr}%</span></div>`;
   return `<div class="stat-card glass" style="display:flex;align-items:center;gap:14px">
     <div style="flex:1">
-      <div class="label">${label}</div>
-      <div class="value" style="font-size:24px">${t.total}<span style="font-size:13px;color:var(--txt-2);font-weight:400"> games</span></div>
-      <div class="sub">${t.record}</div>
+      <div class="label">${t(label)}</div>
+      <div class="value" style="font-size:24px">${st.total}<span style="font-size:13px;color:var(--txt-2);font-weight:400"> ${t("games")}</span></div>
+      <div class="sub">${st.record}</div>
     </div>${ring}
   </div>`;
 }
@@ -1553,14 +1821,14 @@ function renderDecks() {
   const el = $("#page-decks");
   const ranked = rankedDecks();
   const head = `<div class="section-head" style="margin-top:0">
-    <h2><span class="dot"></span> Your Decks <span class="badge-count">${State.decks.length}</span></h2>
+    <h2><span class="dot"></span> ${t("Your Decks")} <span class="badge-count">${State.decks.length}</span></h2>
     <button class="btn btn-gold" onclick="openDeckModal()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> New Deck</button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> ${t("New Deck")}</button>
   </div>`;
 
   if (State.decks.length === 0) {
     el.innerHTML = head + emptyState("🃏", "No decks yet", "Create your first deck and paste a decklist to start tracking.",
-      `<button class="btn btn-primary" onclick="openDeckModal()">Create Deck</button>`);
+      `<button class="btn btn-primary" onclick="openDeckModal()">${t("Create Deck")}</button>`);
     return;
   }
 
@@ -1569,40 +1837,40 @@ function renderDecks() {
     const rep = consistencyReport(parseDecklist(d.decklist), d.overrides || {});
     const hasList = rep.total > 0;
     return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
-      ${i === 0 && s.total > 0 ? `<div class="rank-badge">★ TOP DECK</div>` : ""}
+      ${i === 0 && s.total > 0 ? `<div class="rank-badge">${t("★ TOP DECK")}</div>` : ""}
       <div class="top">
         <div class="deck-title-row">
           ${pokeSprite(d.name, 42)}
-          <div><h3>${esc(d.name)}</h3><div class="created">Created ${fmtDate(d.created)}</div></div>
+          <div><h3>${esc(d.name)}</h3><div class="created">${t("Created")} ${fmtDate(d.created)}</div></div>
         </div>
         <div class="wr-badge" style="color:${wrColor(s.wr)}">${s.wr}%</div>
       </div>
       <div class="deck-rank-bar"><i style="width:${s.wr}%"></i></div>
       <div class="deck-stats">
-        <div class="deck-stat"><div class="k">Matches</div><div class="v">${s.total}</div></div>
-        <div class="deck-stat"><div class="k">Record</div><div class="v">${s.record}</div></div>
+        <div class="deck-stat"><div class="k">${t("Matches")}</div><div class="v">${s.total}</div></div>
+        <div class="deck-stat"><div class="k">${t("Record")}</div><div class="v">${s.record}</div></div>
         <div class="deck-stat"><div class="k">BO1</div><div class="v">${s.bo1.record} · ${s.bo1.wr}%</div></div>
         <div class="deck-stat"><div class="k">BO3</div><div class="v">${s.bo3.record} · ${s.bo3.wr}%</div></div>
-        <div class="deck-stat"><div class="k">Online</div><div class="v">${s.online.record} · ${s.online.wr}%</div></div>
-        <div class="deck-stat"><div class="k">In Person</div><div class="v">${s.inperson.record} · ${s.inperson.wr}%</div></div>
+        <div class="deck-stat"><div class="k">${t("Online")}</div><div class="v">${s.online.record} · ${s.online.wr}%</div></div>
+        <div class="deck-stat"><div class="k">${t("In Person")}</div><div class="v">${s.inperson.record} · ${s.inperson.wr}%</div></div>
       </div>
 
       <!-- consistency strip: theoretical (from list) + actual (from logged matches) -->
       <div class="consistency-strip">
         ${hasList ? `
           <div class="cs-item" title="Theoretical mulligan chance from your decklist">
-            <span class="cs-k">Mulligan</span><b style="color:${rep.mulligan<=9?'var(--win)':rep.mulligan<=16?'var(--draw)':'var(--loss)'}">${rep.mulligan}%</b></div>
+            <span class="cs-k">${t("Mulligan")}</span><b style="color:${rep.mulligan<=9?'var(--win)':rep.mulligan<=16?'var(--draw)':'var(--loss)'}">${rep.mulligan}%</b></div>
           <div class="cs-item" title="Estimated chance of a legal-but-dead hand">
-            <span class="cs-k">Brick est.</span><b style="color:${rep.brick<=8?'var(--win)':rep.brick<=15?'var(--draw)':'var(--loss)'}">${rep.brick}%</b></div>
-        ` : `<div class="cs-item" style="flex:1;color:var(--txt-2);font-size:11.5px">No decklist — add one for brick math</div>`}
+            <span class="cs-k">${t("Brick est.")}</span><b style="color:${rep.brick<=8?'var(--win)':rep.brick<=15?'var(--draw)':'var(--loss)'}">${rep.brick}%</b></div>
+        ` : `<div class="cs-item" style="flex:1;color:var(--txt-2);font-size:11.5px">${t("No decklist — add one for brick math")}</div>`}
         <div class="cs-item" title="Actual bricks you logged in matches">
-          <span class="cs-k">Bricked (real)</span><b style="color:${s.brickRate<=10?'var(--win)':s.brickRate<=20?'var(--draw)':'var(--loss)'}">${s.brickRate}% · ${s.bricked}/${s.total}</b></div>
+          <span class="cs-k">${t("Bricked (real)")}</span><b style="color:${s.brickRate<=10?'var(--win)':s.brickRate<=20?'var(--draw)':'var(--loss)'}">${s.brickRate}% · ${s.bricked}/${s.total}</b></div>
       </div>
 
       <div class="actions">
-        <button class="btn btn-ghost btn-sm" onclick="openDeckModal('${d.id}')">Edit</button>
-        <button class="btn btn-ghost btn-sm" onclick="viewDecklist('${d.id}')">Decklist</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteDeck('${d.id}')" style="margin-left:auto">Delete</button>
+        <button class="btn btn-ghost btn-sm" onclick="openDeckModal('${d.id}')">${t("Edit")}</button>
+        <button class="btn btn-ghost btn-sm" onclick="viewDecklist('${d.id}')">${t("Decklist")}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDeck('${d.id}')" style="margin-left:auto">${t("Delete")}</button>
       </div>
     </div>`;
   }).join("")}</div>`;
@@ -1612,12 +1880,12 @@ function renderDecks() {
 function openDeckModal(id) {
   const d = id ? State.decks.find(x => x.id === id) : null;
   openModal(`
-    <h2>${d ? "Edit Deck" : "New Deck"}</h2>
-    <p class="sub">Paste a decklist (PTCG Live / Limitless format). The consistency panel updates live as you type.</p>
-    <div class="field"><label>Deck Name</label>
+    <h2>${d ? t("Edit Deck") : t("New Deck")}</h2>
+    <p class="sub">${t("Paste a decklist (PTCG Live / Limitless format). The consistency panel updates live as you type.")}</p>
+    <div class="field"><label>${t("Deck Name")}</label>
       <input class="input" id="dkName" placeholder="e.g. Charizard ex" value="${d ? esc(d.name) : ""}"></div>
-    <div class="field" style="margin-top:14px"><label>Decklist <span class="opt">(optional)</span></label>
-      <div class="dz" id="dkDrop">⬆ Drop a .txt file here or click to upload</div>
+    <div class="field" style="margin-top:14px"><label>${t("Decklist")} <span class="opt">${t("(optional)")}</span></label>
+      <div class="dz" id="dkDrop">${t("⬆ Drop a .txt file here or click to upload")}</div>
       <input type="file" id="dkFile" accept=".txt,text/plain" style="display:none">
       <textarea class="textarea mono" id="dkList" placeholder="Pokémon: 12&#10;3 Charmander OBF 26&#10;...&#10;&#10;Trainer: 35&#10;...&#10;&#10;Energy: 13&#10;..." style="margin-top:10px;min-height:150px">${d ? esc(d.decklist) : ""}</textarea>
     </div>
@@ -1626,8 +1894,8 @@ function openDeckModal(id) {
     <div class="consistency glass" id="dkConsistency" style="margin-top:16px;padding:16px"></div>
 
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDeck('${d ? d.id : ""}')">${d ? "Save Changes" : "Create Deck"}</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveDeck('${d ? d.id : ""}')">${d ? t("Save Changes") : t("Create Deck")}</button>
     </div>`);
 
   // wire up file upload + drag/drop
@@ -1659,7 +1927,7 @@ function renderConsistency(deckForInit) {
   if (!parsed.parsed) {
     _ovr = { basics: null, engine: null };
     box.innerHTML = `<div style="color:var(--txt-2);font-size:13px;display:flex;gap:9px;align-items:center">
-      ${pokeSprite("", 26)} Paste a decklist above to see mulligan &amp; brick probabilities.</div>`;
+      ${pokeSprite("", 26)} ${t("Paste a decklist above to see mulligan & brick probabilities.")}</div>`;
     return;
   }
 
@@ -1685,31 +1953,31 @@ function renderConsistency(deckForInit) {
 
   box.innerHTML = `
     <h3 style="font-size:14px;margin-bottom:4px;display:flex;align-items:center;gap:8px">
-      🧪 Consistency Analysis ${parsed.warning ? `<span class="pill draw" style="font-size:10px">${parsed.warning}</span>` : `<span class="pill muted" style="font-size:10px">${parsed.total} cards</span>`}</h3>
+      ${t("🧪 Consistency Analysis")} ${parsed.warning ? `<span class="pill draw" style="font-size:10px">${parsed.warning}</span>` : `<span class="pill muted" style="font-size:10px">${parsed.total} cards</span>`}</h3>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px;margin:12px 0">
-      ${miniStat("Basics", rep.basics, "🟢")}
-      ${miniStat("Supporters", rep.supporters, "👤")}
-      ${miniStat("Ball/Search", rep.search, "🔍")}
-      ${miniStat("Draw items", rep.draw, "🎴")}
-      ${miniStat("Engine", rep.engine, "⚙️")}
+      ${miniStat(t("Basics"), rep.basics, "🟢")}
+      ${miniStat(t("Supporters"), rep.supporters, "👤")}
+      ${miniStat(t("Ball/Search"), rep.search, "🔍")}
+      ${miniStat(t("Draw items"), rep.draw, "🎴")}
+      ${miniStat(t("Engine"), rep.engine, "⚙️")}
     </div>
-    ${meter("Mulligan chance (no Basic in opener)", rep.mulligan, mulKind,
-      mulKind==="good"?"Healthy — low mulligan risk.":mulKind==="ok"?"A bit high; consider more Basics.":"Too high — add Basic Pokémon.")}
-    ${meter("Brick estimate (legal but no engine)", rep.brick, brickKind,
-      "Hand has a Basic but no Supporter / search / draw to develop.")}
-    ${meter("Good opener (Basic + an engine card)", rep.good, goodKind,
-      "Chance your 7 can actually start doing something.")}
-    <div style="font-size:11.5px;color:var(--txt-2);margin-top:4px">Opens with a Supporter ~<b>${rep.supporterOpen}%</b> of games.</div>
+    ${meter(t("Mulligan chance (no Basic in opener)"), rep.mulligan, mulKind,
+      mulKind==="good"?t("Healthy — low mulligan risk."):mulKind==="ok"?t("A bit high; consider more Basics."):t("Too high — add Basic Pokémon."))}
+    ${meter(t("Brick estimate (legal but no engine)"), rep.brick, brickKind,
+      t("Hand has a Basic but no Supporter / search / draw to develop."))}
+    ${meter(t("Good opener (Basic + an engine card)"), rep.good, goodKind,
+      t("Chance your 7 can actually start doing something."))}
+    <div style="font-size:11.5px;color:var(--txt-2);margin-top:4px">${t("Opens with a Supporter")} ~<b>${rep.supporterOpen}%</b> ${t("of games.")}</div>
 
     <details style="margin-top:12px">
-      <summary style="cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600">Adjust counts manually</summary>
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600">${t("Adjust counts manually")}</summary>
       <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
-        <div class="field" style="flex:1;min-width:120px"><label style="font-size:11.5px">Basic Pokémon</label>
+        <div class="field" style="flex:1;min-width:120px"><label style="font-size:11.5px">${t("Basic Pokémon")}</label>
           <input class="input" type="number" min="0" max="60" id="ovrBasics" value="${rep.basics}"></div>
-        <div class="field" style="flex:1;min-width:120px"><label style="font-size:11.5px">Engine cards</label>
+        <div class="field" style="flex:1;min-width:120px"><label style="font-size:11.5px">${t("Engine cards")}</label>
           <input class="input" type="number" min="0" max="60" id="ovrEngine" value="${rep.engine}"></div>
       </div>
-      <div style="font-size:11px;color:var(--txt-2);margin-top:6px">Auto-detected from the list — override if the parser miscounted (e.g. Stage 1/2 lines or unusual card names).</div>
+      <div style="font-size:11px;color:var(--txt-2);margin-top:6px">${t("Auto-detected from the list — override if the parser miscounted (e.g. Stage 1/2 lines or unusual card names).")}</div>
     </details>`;
 
   // wire override inputs to recompute (keeping focus-friendly)
@@ -1754,28 +2022,69 @@ function deleteDeck(id) {
     `This deletes "<b>${esc(deckName(id))}</b>".${n ? ` <b>${n}</b> linked match(es) will keep their record but show as "deleted deck".` : ""} This cannot be undone.`,
     () => { State.decks = State.decks.filter(d => d.id !== id); save(); refreshAll(); toast("Deck deleted.", "info"); });
 }
+/* ------------------------------------------------------------------ */
+/* 6b. LIMITLESS-STYLE CARD IMAGES                                    */
+/* ---------------------------------------------------------------------
+   LimitlessTCG serves every card image from a predictable CDN path:
+     https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/{SET}/{SET}_{NNN}_R_EN_XS.png
+   where {SET} is the set code (TWM, PRE, SCR...) and {NNN} is the card
+   number zero-padded to 3 digits. The red quantity hexagons live at:
+     https://limitless3.nyc3.cdn.digitaloceanspaces.com/decklist/{n}.png
+   We build these URLs straight from each decklist line (set code + number),
+   so there are NO slow API lookups — it's the same source Limitless uses.
+   --------------------------------------------------------------------- */
+const LIMITLESS_CARD = "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci";
+const LIMITLESS_QTY  = "https://limitless3.nyc3.cdn.digitaloceanspaces.com/decklist";
+
+/* A few decklist set codes differ from Limitless's CDN folder names. */
+const SETCODE_FIX = { ENERGY: "", "": "" };
+
+/** Build the Limitless image URL for a parsed card, or "" if no set info. */
+function limitlessCardURL(card) {
+  let set = (card.setCode || "").toUpperCase();
+  if (SETCODE_FIX[set] !== undefined) set = SETCODE_FIX[set];
+  if (!set || !card.setNum) return "";
+  const num = String(card.setNum).replace(/^0+/, "");        // strip any leading zeros
+  const padded = num.match(/^\d+$/) ? num.padStart(3, "0") : num; // pad pure numbers to 3 digits
+  return `${LIMITLESS_CARD}/${set}/${set}_${padded}_R_EN_XS.png`;
+}
+/** URL for the red quantity hexagon (1-4 exist; clamp for safety). */
+function qtyBadgeURL(n) { return `${LIMITLESS_QTY}/${Math.min(Math.max(n,1),4)}.png`; }
+
+/* CORS image proxy (wsrv.nl) — used ONLY for the JPG export. The Limitless
+   CDN doesn't send cross-origin headers, which "taints" the export canvas
+   and strips the card art. Routing the image through wsrv.nl re-serves it
+   with Access-Control-Allow-Origin so the canvas stays clean and exportable.
+   The on-screen grid still loads directly from Limitless (faster, no proxy). */
+function proxiedURL(url) {
+  // wsrv.nl wants the target without its own scheme; encode the rest.
+  return "https://wsrv.nl/?url=" + encodeURIComponent(url.replace(/^https?:\/\//, "")) + "&output=png";
+}
+
 function viewDecklist(id) {
   const d = State.decks.find(x => x.id === id);
   const parsed = parseDecklist(d.decklist);
   openModal(`<h2>${esc(d.name)}</h2><p class="sub">Created ${fmtDate(d.created)} · ${parsed.parsed ? parsed.total + " cards" : "no decklist"}</p>
     <div id="dlTabs" style="display:flex;gap:8px;margin-bottom:14px">
-      <button class="btn btn-ghost btn-sm dl-tab active" onclick="dlTab('text')">📄 Text</button>
-      <button class="btn btn-ghost btn-sm dl-tab" onclick="dlTab('image')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>🖼️ Image</button>
+      <button class="btn btn-ghost btn-sm dl-tab active" onclick="dlTab('image')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>${t("🖼️ Cards")}</button>
+      <button class="btn btn-ghost btn-sm dl-tab" onclick="dlTab('text')">${t("📄 Text")}</button>
     </div>
-    <div id="dlText">
-      <pre class="mono" style="background:var(--bg-2);border:1px solid var(--stroke);border-radius:12px;padding:16px;max-height:46vh;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6">${d.decklist ? esc(d.decklist) : "— no decklist saved —"}</pre>
+    <div id="dlImage">
+      <div id="dlCardGrid" class="card-grid-wrap">${t("Loading cards…")}</div>
     </div>
-    <div id="dlImage" style="display:none">
-      <div style="text-align:center;color:var(--txt-2);font-size:13px;padding:30px" id="dlCanvasHolder">Rendering deck image…</div>
+    <div id="dlText" style="display:none">
+      <pre class="mono" style="background:var(--bg-2);border:1px solid var(--stroke);border-radius:12px;padding:16px;max-height:46vh;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6">${d.decklist ? esc(d.decklist) : t("— no decklist saved —")}</pre>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
-      <button class="btn btn-ghost" onclick="copyDecklist('${d.id}')">Copy text</button>
-      <button class="btn btn-gold" id="dlDownload" data-deck="${d.id}" onclick="downloadDeckImage('${d.id}')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>⬇ Save as JPG</button>
-      <button class="btn btn-primary" onclick="openDeckModal('${d.id}')">Edit</button>
-    </div>`);
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Close")}</button>
+      <button class="btn btn-ghost" onclick="copyDecklist('${d.id}')">${t("Copy text")}</button>
+      <button class="btn btn-gold" id="dlDownload" data-deck="${d.id}" onclick="downloadDeckImage('${d.id}')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>${t("⬇ Save as JPG")}</button>
+      <button class="btn btn-primary" onclick="openDeckModal('${d.id}')">${t("Edit")}</button>
+    </div>`, true);
+  // default to the visual card grid
+  if (parsed.parsed) renderCardGrid(id);
 }
-/** Switch between text and image tabs in the decklist modal. */
+/** Switch between the visual card grid and the plain text list. */
 function dlTab(which) {
   $$(".dl-tab").forEach(b => b.classList.remove("active"));
   event.target.classList.add("active");
@@ -1783,7 +2092,7 @@ function dlTab(which) {
   $("#dlImage").style.display = which === "image" ? "" : "none";
   if (which === "image") {
     const id = $("#dlDownload").getAttribute("data-deck");
-    renderDeckImage(id, "#dlCanvasHolder");
+    renderCardGrid(id);
   }
 }
 function copyDecklist(id) {
@@ -1793,104 +2102,165 @@ function copyDecklist(id) {
     () => toast("Copy failed.", "error"));
 }
 
-/* --- Deck image renderer (text + sprite sheet) ----------------------- */
+/* --- On-screen card grid (LimitlessTCG look) ------------------------- */
 /**
- * Draw a parsed decklist into a canvas as a tidy, sprite-illustrated sheet,
- * grouped by Pokémon / Trainer / Energy. Sprites load asynchronously.
+ * Render the deck as a grid of real card images grouped into
+ * Pokémon / Trainer / Energy, each with a red hex quantity badge.
+ * <img> tags don't require CORS, so this always works with a connection.
+ */
+function renderCardGrid(id) {
+  const deck = State.decks.find(d => d.id === id);
+  const parsed = parseDecklist(deck.decklist);
+  const holder = $("#dlCardGrid");
+  if (!holder) return;
+  if (!parsed.parsed) { holder.innerHTML = "<div style='color:var(--txt-2);padding:20px;text-align:center'>${t('No decklist to display.')}</div>"; return; }
+
+  const sections = [["Pokémon", parsed.sections.pokemon, "pk"],
+                    ["Trainer", parsed.sections.trainer, "tr"],
+                    ["Energy",  parsed.sections.energy,  "en"]].filter(s => s[1].length);
+
+  holder.innerHTML = sections.map(([title, cards, sk]) => {
+    const title_t = t(title);
+    const count = cards.reduce((a, b) => a + b.count, 0);
+    return `<div class="cg-section">
+      <div class="cg-head cg-head-${sk}"><span>${title_t}</span><b>${count}</b></div>
+      <div class="cg-grid">
+        ${cards.map(c => {
+          const url = limitlessCardURL(c);
+          return `<div class="cg-card" title="${esc(c.name)}${c.setCode ? " · " + esc(c.setCode) + " " + esc(c.setNum) : ""}">
+            <div class="cg-img">
+              ${url
+                ? `<img src="${url}" alt="${esc(c.name)}" loading="lazy" onerror="this.parentNode.classList.add('cg-miss');this.parentNode.innerHTML='<span class=cg-ph>'+this.alt+'</span>'">`
+                : `<span class="cg-ph">${esc(c.name)}</span>`}
+            </div>
+            <span class="cg-chip cg-chip-${sk}"><i>×</i>${c.count}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* --- JPG export: real card images on a canvas ------------------------ */
+/**
+ * Build a downloadable image of the deck as a card grid with quantity
+ * badges, drawing the real Limitless card art. Uses crossOrigin so the
+ * canvas can export; any card that fails renders as a labelled tile.
  * @returns {Promise<HTMLCanvasElement>}
  */
 async function buildDeckCanvas(deck) {
   const parsed = parseDecklist(deck.decklist);
-  const W = 900, pad = 36, colW = (W - pad * 2);
-  const lineH = 40, headH = 46, gap = 18;
 
-  // Pre-load Pokémon sprites for the Pokémon section (others get an icon glyph).
-  const spriteCache = {};
-  await Promise.all(parsed.sections.pokemon.map(c => new Promise(res => {
-    const url = spriteURL(c.name);
-    if (!url.startsWith("http")) { res(); return; }
+  // Pre-load card images through the CORS proxy so the canvas stays exportable.
+  // Each image has a timeout so one slow/stuck request can't hang the export;
+  // any image that doesn't arrive just renders as a labelled placeholder tile.
+  const imgCache = {};
+  await Promise.all(parsed.cards.map(c => new Promise(res => {
+    const direct = limitlessCardURL(c);
+    if (!direct) { res(); return; }
     const img = new Image(); img.crossOrigin = "anonymous";
-    img.onload = () => { spriteCache[c.name] = img; res(); };
-    img.onerror = () => res();
-    img.src = url;
+    let done = false;
+    const finish = () => { if (!done) { done = true; res(); } };
+    const timer = setTimeout(finish, 9000);               // 9s safety timeout
+    img.onload = () => { imgCache[cardImgKey(c)] = img; clearTimeout(timer); finish(); };
+    img.onerror = () => { clearTimeout(timer); finish(); };
+    img.src = proxiedURL(direct);                          // route through wsrv.nl for CORS headers
   })));
 
-  // compute height
-  const sect = [["Pokémon", parsed.sections.pokemon, "#5b8cff"],
-                ["Trainer", parsed.sections.trainer, "#ffcb05"],
-                ["Energy",  parsed.sections.energy,  "#2fd07a"]].filter(s => s[1].length);
-  let H = pad * 2 + 70;  // title area
-  sect.forEach(s => { H += headH + s[1].length * lineH + gap; });
-  H += 40; // footer
+  const cols = 6, cardW = 130, cardH = Math.round(cardW * 7 / 5), gapX = 12, gapY = 26;
+  const pad = 40, W = pad * 2 + cols * cardW + (cols - 1) * gapX;
+  const sections = [["Pokémon", parsed.sections.pokemon, "#5b8cff"],
+                    ["Trainer", parsed.sections.trainer, "#ffcb05"],
+                    ["Energy",  parsed.sections.energy,  "#2fd07a"]].filter(s => s[1].length);
+
+  let H = pad + 76;
+  for (const [, cards] of sections) { const rows = Math.ceil(cards.length / cols); H += 34 + rows * (cardH + gapY); }
+  H += 26;
 
   const c = document.createElement("canvas");
-  const scale = 2;                       // hi-dpi for crisp JPG
+  const scale = 2;
   c.width = W * scale; c.height = H * scale;
   const x = c.getContext("2d"); x.scale(scale, scale);
 
-  // background
   const bg = x.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, "#0d1424"); bg.addColorStop(1, "#0a0e1a");
   x.fillStyle = bg; x.fillRect(0, 0, W, H);
 
-  // title
-  x.fillStyle = "#eef3ff";
+  x.fillStyle = "#eef3ff"; x.textBaseline = "alphabetic";
   x.font = "700 30px 'Chakra Petch', sans-serif";
-  x.fillText(deck.name, pad, pad + 30);
-  x.fillStyle = "#6b7896";
-  x.font = "400 15px Sora, sans-serif";
-  x.fillText(`${parsed.total} cards   •   ${parsed.basics} Basics   •   created ${fmtDate(deck.created)}`, pad, pad + 54);
+  x.fillText(deck.name, pad, pad + 26);
+  x.fillStyle = "#6b7896"; x.font = "400 15px Sora, sans-serif";
+  x.fillText(`${parsed.total} cards   •   ${parsed.basics} Basics   •   ${fmtDate(deck.created)}`, pad, pad + 50);
 
   let y = pad + 84;
-  for (const [name, cards, color] of sect) {
+  for (const [title, cards, color] of sections) {
     const count = cards.reduce((a, b) => a + b.count, 0);
-    // section header
-    x.fillStyle = color;
-    x.fillRect(pad, y, 5, 26);
-    x.fillStyle = "#eef3ff";
-    x.font = "700 19px 'Chakra Petch', sans-serif";
-    x.fillText(`${name}`, pad + 14, y + 20);
-    x.fillStyle = color;
-    x.font = "700 16px 'Chakra Petch', sans-serif";
-    x.fillText(`${count}`, pad + 14 + x.measureText(name).width + 14, y + 20);
-    y += headH;
+    x.fillStyle = color; x.fillRect(pad, y - 14, 5, 22);
+    x.fillStyle = "#eef3ff"; x.font = "700 18px 'Chakra Petch', sans-serif";
+    x.fillText(title, pad + 14, y + 4);
+    x.fillStyle = color; x.font = "700 15px 'Chakra Petch', sans-serif";
+    x.fillText(`${count}`, pad + 22 + x.measureText(title).width, y + 4);
+    y += 22;
 
-    for (const card of cards) {
-      // row background
-      x.fillStyle = "rgba(255,255,255,0.03)";
-      roundRect(x, pad, y, colW, lineH - 6, 8); x.fill();
-      // count badge
-      x.fillStyle = color;
-      x.font = "700 18px 'Chakra Petch', sans-serif";
-      x.fillText(`${card.count}`, pad + 12, y + 23);
-      // sprite (pokemon only)
-      const sp = spriteCache[card.name];
-      if (sp) {
-        try { x.drawImage(sp, pad + 38, y + 1, 30, 30); } catch {}
-      }
-      // name
-      x.fillStyle = "#dbe4f7";
-      x.font = "500 16px Sora, sans-serif";
-      x.fillText(card.name, pad + (sp ? 76 : 44), y + 22);
-      y += lineH;
-    }
-    y += gap;
+    cards.forEach((card, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const cx = pad + col * (cardW + gapX);
+      const cy = y + row * (cardH + gapY);
+      const img = imgCache[cardImgKey(card)];
+      roundRect(x, cx, cy, cardW, cardH, 8); x.save(); x.clip();
+      if (img) { try { x.drawImage(img, cx, cy, cardW, cardH); } catch { drawPlaceholderCard(x, cx, cy, cardW, cardH, card.name); } }
+      else drawPlaceholderCard(x, cx, cy, cardW, cardH, card.name);
+      x.restore();
+      // glass quantity chip, top-right, colored by section (matches on-screen)
+      drawQtyChip(x, cx + cardW - 6, cy + 6, card.count, color);
+    });
+    const rows = Math.ceil(cards.length / cols);
+    y += rows * (cardH + gapY) + 12;
   }
 
-  // footer
-  x.fillStyle = "#46527a";
-  x.font = "500 13px Sora, sans-serif";
-  x.fillText("Generated with PokéTracker", pad, H - 20);
-  // poké-ball mark
-  x.beginPath(); x.arc(W - pad - 8, H - 24, 9, 0, Math.PI * 2);
-  x.fillStyle = "#fff"; x.fill();
-  x.beginPath(); x.arc(W - pad - 8, H - 24, 9, Math.PI, 0);
-  x.fillStyle = "#ee1c25"; x.fill();
-  x.strokeStyle = "#11151f"; x.lineWidth = 1.6;
-  x.beginPath(); x.moveTo(W - pad - 17, H - 24); x.lineTo(W - pad + 1, H - 24); x.stroke();
-  x.beginPath(); x.arc(W - pad - 8, H - 24, 3, 0, Math.PI * 2); x.fillStyle = "#fff"; x.fill(); x.stroke();
-
+  x.fillStyle = "#46527a"; x.font = "500 13px Sora, sans-serif";
+  x.fillText("Generated with PokéTracker", pad, H - 12);
   return c;
+}
+/** Stable key for the image cache. */
+function cardImgKey(c) { return `${(c.setCode||"").toUpperCase()}_${c.setNum||""}_${c.name}`; }
+/** Draw a glass-style quantity chip anchored at its top-right corner (rx, ty). */
+function drawQtyChip(x, rx, ty, n, color) {
+  x.font = "700 15px 'Chakra Petch', sans-serif";
+  const label = "×" + n;
+  const w = Math.ceil(x.measureText(label).width) + 16, h = 24, r = 8;
+  const left = rx - w, top = ty;
+  // translucent section-colored fill + light border (glass feel)
+  roundRect(x, left, top, w, h, r);
+  x.fillStyle = hexToRgba(color, 0.85); x.fill();
+  x.strokeStyle = "rgba(255,255,255,0.45)"; x.lineWidth = 1.5; x.stroke();
+  // text (dark on the gold/yellow trainer color, white otherwise)
+  x.fillStyle = (color === "#ffcb05") ? "#1a1408" : "#ffffff";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(label, left + w / 2, top + h / 2 + 1);
+  x.textAlign = "left"; x.textBaseline = "alphabetic";
+}
+/** Convert a #rrggbb hex to an rgba() string with the given alpha. */
+function hexToRgba(hex, a) {
+  const m = hex.replace("#", "");
+  const r = parseInt(m.slice(0, 2), 16), g = parseInt(m.slice(2, 4), 16), b = parseInt(m.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+/** Draw a labelled placeholder when a card image is unavailable. */
+function drawPlaceholderCard(x, cx, cy, w, h, name) {
+  const g = x.createLinearGradient(cx, cy, cx, cy + h);
+  g.addColorStop(0, "#1c2842"); g.addColorStop(1, "#141d33");
+  x.fillStyle = g; x.fillRect(cx, cy, w, h);
+  x.strokeStyle = "rgba(120,160,255,.25)"; x.lineWidth = 1; x.strokeRect(cx + 2, cy + 2, w - 4, h - 4);
+  x.fillStyle = "#aebbd6"; x.font = "600 11px Sora, sans-serif"; x.textAlign = "center";
+  const words = name.split(" "); let line = "", yy = cy + h / 2 - 6;
+  for (const w0 of words) {
+    const test = line ? line + " " + w0 : w0;
+    if (x.measureText(test).width > w - 14 && line) { x.fillText(line, cx + w / 2, yy); yy += 14; line = w0; }
+    else line = test;
+  }
+  if (line) x.fillText(line, cx + w / 2, yy);
+  x.textAlign = "left";
 }
 /** Rounded-rect path helper for canvas. */
 function roundRect(ctx, x, y, w, h, r) {
@@ -1902,30 +2272,14 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-/** Render the deck image into the modal preview area. */
-async function renderDeckImage(id, holderSel) {
-  const deck = State.decks.find(d => d.id === id);
-  const holder = $(holderSel);
-  holder.innerHTML = "Rendering deck image…";
-  try {
-    const canvas = await buildDeckCanvas(deck);
-    canvas.style.cssText = "width:100%;max-width:100%;border-radius:12px;border:1px solid var(--glass-border);box-shadow:var(--shadow)";
-    holder.innerHTML = "";
-    holder.appendChild(canvas);
-    holder._canvas = canvas;
-  } catch (err) {
-    console.error(err);
-    holder.innerHTML = "<span style='color:var(--loss)'>Could not render image.</span>";
-  }
-}
 /** Build the image and trigger a JPG download. */
 async function downloadDeckImage(id) {
   const deck = State.decks.find(d => d.id === id);
   try {
-    toast("Building image…", "info");
+    toast("Building deck image…", "info");
     const canvas = await buildDeckCanvas(deck);
     canvas.toBlob(blob => {
-      if (!blob) { toast("Export failed.", "error"); return; }
+      if (!blob) { toast("Export failed — card images blocked download. The on-screen view still works.", "error"); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `${deck.name.replace(/[^\w]+/g, "-").toLowerCase()}-decklist.jpg`;
@@ -1933,7 +2287,10 @@ async function downloadDeckImage(id) {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast("Deck image saved as JPG.", "success");
     }, "image/jpeg", 0.92);
-  } catch (err) { console.error(err); toast("Export failed.", "error"); }
+  } catch (err) {
+    console.error(err);
+    toast("Export blocked by card-image security. The on-screen card view still works.", "error");
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1946,7 +2303,7 @@ function renderLogger(editId) {
 
   if (State.decks.length === 0) {
     el.innerHTML = emptyState("🃏", "Create a deck first", "You need at least one deck before logging matches.",
-      `<button class="btn btn-primary" onclick="navigate('decks')">Go to Decks</button>`);
+      `<button class="btn btn-primary" onclick="navigate('decks')">${t("Go to Decks")}</button>`);
     return;
   }
 
@@ -1955,45 +2312,45 @@ function renderLogger(editId) {
   const fmt = m ? m.format : "BO3";
 
   el.innerHTML = `<div class="glass" style="padding:24px;max-width:780px">
-    ${m ? `<div class="pill muted" style="margin-bottom:14px">✏ Editing match</div>` : ""}
+    ${m ? `<div class="pill muted" style="margin-bottom:14px">${t("✏ Editing match")}</div>` : ""}
     <div class="form-grid">
-      <div class="field"><label>Deck Used</label>
+      <div class="field"><label>${t("Deck Used")}</label>
         <div style="display:flex;align-items:center;gap:10px">
           <img class="poke-sprite" id="mDeckSprite" width="38" height="38" alt="">
           <select class="select" id="mDeck" onchange="updateDeckSprite()" style="flex:1">${opts}</select>
         </div></div>
-      <div class="field"><label>Date</label>
+      <div class="field"><label>${t("Date")}</label>
         <input class="input" type="date" id="mDate" value="${m ? m.date : todayISO()}"></div>
-      <div class="field"><label>Opponent Deck</label>
+      <div class="field"><label>${t("Opponent Deck")}</label>
         <input class="input" id="mOpp" placeholder="e.g. Gardevoir ex" value="${m ? esc(m.opponent) : ""}"></div>
-      <div class="field"><label>Event <span class="opt">(optional)</span></label>
+      <div class="field"><label>${t("Event")} <span class="opt">${t("(optional)")}</span></label>
         <input class="input" id="mEvent" placeholder="e.g. Regional Championship" value="${m ? esc(m.event) : ""}"></div>
     </div>
 
     <div class="form-grid" style="margin-top:18px">
-      <div class="field"><label>Format</label>
+      <div class="field"><label>${t("Format")}</label>
         <div class="seg" id="mFormat">
-          <label><input type="radio" name="fmt" value="BO1" ${sel("BO1", fmt)} onchange="syncResultOptions()"><span>Best of 1</span></label>
-          <label><input type="radio" name="fmt" value="BO3" ${sel("BO3", fmt)} onchange="syncResultOptions()"><span>Best of 3</span></label>
+          <label><input type="radio" name="fmt" value="BO1" ${sel("BO1", fmt)} onchange="syncResultOptions()"><span>${t("Best of 1")}</span></label>
+          <label><input type="radio" name="fmt" value="BO3" ${sel("BO3", fmt)} onchange="syncResultOptions()"><span>${t("Best of 3")}</span></label>
         </div></div>
-      <div class="field"><label>Play Position</label>
+      <div class="field"><label>${t("Play Position")}</label>
         <div class="seg">
-          <label><input type="radio" name="pos" value="First" ${m ? sel("First", m.position) : "checked"}><span>Went First</span></label>
-          <label><input type="radio" name="pos" value="Second" ${m ? sel("Second", m.position) : ""}><span>Went Second</span></label>
+          <label><input type="radio" name="pos" value="First" ${m ? sel("First", m.position) : "checked"}><span>${t("Went First")}</span></label>
+          <label><input type="radio" name="pos" value="Second" ${m ? sel("Second", m.position) : ""}><span>${t("Went Second")}</span></label>
         </div></div>
-      <div class="field"><label>Match Type</label>
+      <div class="field"><label>${t("Match Type")}</label>
         <div class="seg">
-          <label><input type="radio" name="typ" value="Online" ${m ? sel("Online", m.type) : "checked"}><span>Online</span></label>
-          <label><input type="radio" name="typ" value="In Person" ${m ? sel("In Person", m.type) : ""}><span>In Person</span></label>
+          <label><input type="radio" name="typ" value="Online" ${m ? sel("Online", m.type) : "checked"}><span>${t("Online")}</span></label>
+          <label><input type="radio" name="typ" value="In Person" ${m ? sel("In Person", m.type) : ""}><span>${t("In Person")}</span></label>
         </div></div>
-      <div class="field"><label>Result</label>
+      <div class="field"><label>${t("Result")}</label>
         <div class="seg win" id="mResult"></div></div>
     </div>
 
     <div class="field" id="scoreField" style="margin-top:18px;max-width:340px">
-      <label>Game Score <span class="opt">(optional, BO3)</span></label>
+      <label>${t("Game Score")} <span class="opt">${t("(optional, BO3)")}</span></label>
       <select class="select" id="mScore">
-        <option value="">— not recorded —</option>
+        <option value="">${t("— not recorded —")}</option>
         <option value="2-0">2-0</option><option value="2-1">2-1</option>
         <option value="1-2">1-2</option><option value="0-2">0-2</option>
       </select>
@@ -2001,23 +2358,23 @@ function renderLogger(editId) {
 
     <!-- Did the deck brick? -->
     <div class="field" style="margin-top:18px;max-width:420px">
-      <label>Did your deck brick? <span class="opt">(dead / unplayable opening)</span></label>
+      <label>${t("Did your deck brick?")} <span class="opt">${t("(dead / unplayable opening)")}</span></label>
       <div class="seg" id="mBrick">
-        <label><input type="radio" name="brick" value="no" ${m && m.bricked ? "" : "checked"}><span>👍 No brick</span></label>
-        <label><input type="radio" name="brick" value="yes" ${m && m.bricked ? "checked" : ""}><span>🧱 Bricked</span></label>
+        <label><input type="radio" name="brick" value="no" ${m && m.bricked ? "" : "checked"}><span>${t("👍 No brick")}</span></label>
+        <label><input type="radio" name="brick" value="yes" ${m && m.bricked ? "checked" : ""}><span>${t("🧱 Bricked")}</span></label>
       </div>
     </div>
 
-    <div class="field" style="margin-top:18px"><label>Notes <span class="opt">(optional)</span></label>
+    <div class="field" style="margin-top:18px"><label>${t("Notes")} <span class="opt">${t("(optional)")}</span></label>
       <textarea class="textarea" id="mNotes" placeholder="Key plays, mulligans, prize trades, lessons learned...">${m ? esc(m.notes) : ""}</textarea></div>
 
-    <div class="field" style="margin-top:14px"><label>Extra Match Info <span class="opt">(matchup notes, tech cards, sideboard plan, things to remember)</span></label>
+    <div class="field" style="margin-top:14px"><label>${t("Extra Match Info")} <span class="opt">${t("(matchup notes, tech cards, sideboard plan, things to remember)")}</span></label>
       <textarea class="textarea" id="mExtra" placeholder="e.g. Their Gardevoir runs 2 Boss — play around it. Bench Manaphy early. Side in extra Switch vs control.">${m ? esc(m.extraNotes || "") : ""}</textarea></div>
 
     <div class="modal-actions" style="justify-content:flex-start;margin-top:22px">
       <button class="btn btn-primary" onclick="saveMatch('${m ? m.id : ""}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg> ${m ? "Save Changes" : "Save Match"}</button>
-      ${m ? `<button class="btn btn-ghost" onclick="navigate('history')">Cancel</button>` : `<button class="btn btn-ghost" onclick="renderLogger()">Clear</button>`}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg> ${m ? t("Save Changes") : t("Save Match")}</button>
+      ${m ? `<button class="btn btn-ghost" onclick="navigate('history')">${t("Cancel")}</button>` : `<button class="btn btn-ghost" onclick="renderLogger()">${t("Clear")}</button>`}
     </div>
   </div>`;
 
@@ -2038,8 +2395,8 @@ function syncResultOptions(presetResult, presetScore) {
   const fmt = $('input[name="fmt"]:checked')?.value || "BO3";
   const box = $("#mResult");
   const opts = fmt === "BO1"
-    ? [["Win", "Win"], ["Loss", "Loss"], ["Draw", "Draw"]]
-    : [["Match Win", "Match Win"], ["Match Loss", "Match Loss"]];
+    ? [["Win", t("Win")], ["Loss", t("Loss")], ["Draw", t("Draw")]]
+    : [["Match Win", t("Match Win")], ["Match Loss", t("Match Loss")]];
   box.innerHTML = opts.map(([v, lab], i) =>
     `<label><input type="radio" name="res" value="${v}" ${presetResult === v || (!presetResult && i === 0) ? "checked" : ""}><span>${lab}</span></label>`).join("");
   const sf = $("#scoreField");
@@ -2079,7 +2436,7 @@ function saveMatch(id) {
   }
 }
 function editMatch(id) { navigate("logger"); renderLogger(id);
-  $("#pageTitle").innerHTML = `<h1>Edit Match</h1><p>Update this game result</p>`; }
+  $("#pageTitle").innerHTML = `<h1>${t("Edit Match")}</h1><p>${t("Update this game result")}</p>`; }
 function deleteMatch(id) {
   confirmModal("Delete Match?", "This permanently removes the match record.",
     () => { State.matches = State.matches.filter(m => m.id !== id); save(); refreshAll(); toast("Match deleted.", "info"); });
@@ -2110,15 +2467,15 @@ function renderHistory() {
   const deckOpts = State.decks.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
   el.innerHTML = `
     <div class="glass filters">
-      <div class="field"><label>Search opponent / event</label><input class="input" id="fSearch" placeholder="Type to search..."></div>
-      <div class="field"><label>Deck</label><select class="select" id="fDeck"><option value="">All decks</option>${deckOpts}</select></div>
-      <div class="field"><label>Type</label><select class="select" id="fType"><option value="">All</option><option>Online</option><option>In Person</option></select></div>
-      <div class="field"><label>Format</label><select class="select" id="fFormat"><option value="">All</option><option>BO1</option><option>BO3</option></select></div>
-      <div class="field"><label>Position</label><select class="select" id="fPos"><option value="">All</option><option value="First">Went First</option><option value="Second">Went Second</option></select></div>
-      <div class="field"><label>Result</label><select class="select" id="fResult"><option value="">All</option><option value="win">Wins</option><option value="loss">Losses</option><option value="draw">Draws</option></select></div>
-      <div class="field"><label>Brick</label><select class="select" id="fBrick"><option value="">All</option><option value="yes">🧱 Bricked</option><option value="no">No brick</option></select></div>
-      <div class="field"><label>From date</label><input class="input" type="date" id="fFrom"></div>
-      <div class="field"><label>To date</label><input class="input" type="date" id="fTo"></div>
+      <div class="field"><label>${t("Search opponent / event")}</label><input class="input" id="fSearch" placeholder="${t("Type to search...")}"></div>
+      <div class="field"><label>${t("Deck")}</label><select class="select" id="fDeck"><option value="">${t("All decks")}</option>${deckOpts}</select></div>
+      <div class="field"><label>${t("Type")}</label><select class="select" id="fType"><option value="">${t("All")}</option><option value="Online">${t("Online")}</option><option value="In Person">${t("In Person")}</option></select></div>
+      <div class="field"><label>${t("Format")}</label><select class="select" id="fFormat"><option value="">${t("All")}</option><option>BO1</option><option>BO3</option></select></div>
+      <div class="field"><label>${t("Position")}</label><select class="select" id="fPos"><option value="">${t("All")}</option><option value="First">${t("Went First")}</option><option value="Second">${t("Went Second")}</option></select></div>
+      <div class="field"><label>${t("Result")}</label><select class="select" id="fResult"><option value="">${t("All")}</option><option value="win">${t("Wins ")}</option><option value="loss">${t("Losses ")}</option><option value="draw">${t("Draws ")}</option></select></div>
+      <div class="field"><label>${t("Brick")}</label><select class="select" id="fBrick"><option value="">${t("All")}</option><option value="yes">${t("🧱 Bricked")}</option><option value="no">${t("👍 No brick")}</option></select></div>
+      <div class="field"><label>${t("From date")}</label><input class="input" type="date" id="fFrom"></div>
+      <div class="field"><label>${t("To date")}</label><input class="input" type="date" id="fTo"></div>
     </div>
 
     <!-- Bulk-action toolbar (hidden until at least one row is selected) -->
@@ -2129,7 +2486,7 @@ function renderHistory() {
       <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
       <button class="btn btn-danger btn-sm" onclick="deleteSelected()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-        Delete Selected</button>
+        ${t("Delete Selected")}</button>
     </div>
 
     <div class="glass" style="padding:8px 4px">
@@ -2137,14 +2494,14 @@ function renderHistory() {
         <table>
           <thead><tr>
             <th style="width:40px"><button class="chk" id="chkHead" onclick="toggleSelectAll()" title="Select all visible"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></button></th>
-            ${th("date", "Date")}${th("deck", "Deck")}${th("opponent", "Opponent")}
-            ${th("format", "Fmt")}${th("position", "Pos")}${th("type", "Type")}
-            ${th("result", "Result")}<th>Brick</th><th>Event</th><th></th>
+            ${th("date", t("Date"))}${th("deck", t("Deck"))}${th("opponent", t("Opponent"))}
+            ${th("format", t("Fmt"))}${th("position", t("Pos"))}${th("type", t("Type"))}
+            ${th("result", t("Result"))}<th>${t("Brick")}</th><th>${t("Event")}</th><th></th>
           </tr></thead>
           <tbody id="histBody"></tbody>
         </table>
       </div>
-      <div id="histEmpty" class="empty" style="display:none"><div class="ico">🔍</div><h3>No matches match your filters</h3></div>
+      <div id="histEmpty" class="empty" style="display:none"><div class="ico">🔍</div><h3>${t("No matches match your filters")}</h3></div>
     </div>`;
 
   ["fSearch", "fDeck", "fType", "fFormat", "fPos", "fResult", "fBrick", "fFrom", "fTo"].forEach(id => {
@@ -2227,7 +2584,7 @@ function applyHistory() {
   $("#histEmpty").style.display = rows.length ? "none" : "";
   body.innerHTML = rows.map(m => {
     const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
-    const label = isWin(m) ? "Win" : isLoss(m) ? "Loss" : "Draw";
+    const label = isWin(m) ? t("Win") : isLoss(m) ? t("Loss") : t("Draw");
     const on = selected.has(m.id);
     const hasDetail = (m.notes && m.notes.trim()) || (m.extraNotes && m.extraNotes.trim());
     const open = expandedRows.has(m.id);
@@ -2238,10 +2595,10 @@ function applyHistory() {
       <td><div class="cell-deck">${pokeSprite(deckName(m.deckId), 26)}<b>${esc(deckName(m.deckId))}</b></div></td>
       <td>${m.opponent ? `<div class="cell-deck">${pokeSprite(m.opponent, 24)}${esc(m.opponent)}</div>` : "<span style='color:var(--txt-2)'>—</span>"}</td>
       <td><span class="pill muted">${m.format}</span></td>
-      <td>${m.position === "First" ? "1st" : "2nd"}</td>
-      <td>${m.type === "Online" ? "🌐" : "🏠"} ${m.type}</td>
+      <td>${m.position === "First" ? t("1st") : t("2nd")}</td>
+      <td>${m.type === "Online" ? "🌐" : "🏠"} ${t(m.type)}</td>
       <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
-      <td>${m.bricked ? `<span class="pill loss" title="Deck bricked">🧱 Brick</span>` : `<span style="color:var(--txt-2)">—</span>`}</td>
+      <td>${m.bricked ? `<span class="pill loss" title="Deck bricked">${t("🧱 Brick")}</span>` : `<span style="color:var(--txt-2)">—</span>`}</td>
       <td style="color:var(--txt-2)">${esc(m.event) || "—"}</td>
       <td><div class="row-actions">
         ${hasDetail ? `<button class="btn btn-ghost btn-icon btn-sm ${open?'note-open':''}" title="View notes" onclick="toggleExpand('${m.id}')">
@@ -2254,8 +2611,8 @@ function applyHistory() {
     </tr>
     ${open && hasDetail ? `<tr class="detail-row"><td></td><td colspan="10">
       <div class="match-detail">
-        ${m.notes && m.notes.trim() ? `<div class="note-block"><span class="note-label">📝 Notes</span><p>${esc(m.notes)}</p></div>` : ""}
-        ${m.extraNotes && m.extraNotes.trim() ? `<div class="note-block"><span class="note-label">📌 Extra info</span><p>${esc(m.extraNotes)}</p></div>` : ""}
+        ${m.notes && m.notes.trim() ? `<div class="note-block"><span class="note-label">📝 ${t("Notes")}</span><p>${esc(m.notes)}</p></div>` : ""}
+        ${m.extraNotes && m.extraNotes.trim() ? `<div class="note-block"><span class="note-label">📌 ${t("Extra Match Info")}</span><p>${esc(m.extraNotes)}</p></div>` : ""}
       </div>
     </td></tr>` : ""}`;
   }).join("");
@@ -2265,7 +2622,7 @@ function applyHistory() {
   const bar = $("#bulkBar");
   if (bar) {
     bar.style.display = count ? "flex" : "none";
-    $("#bulkCount").textContent = `${count} selected`;
+    $("#bulkCount").textContent = `${count} ${t("selected")}`;
     const allOn = lastVisibleIds.length > 0 && lastVisibleIds.every(id => selected.has(id));
     $("#chkHead").classList.toggle("on", allOn);
     $("#chkAll").classList.toggle("on", allOn);
@@ -2286,49 +2643,49 @@ function renderSettings() {
     </div>
 
     <div class="settings-card glass" style="margin-top:22px">
-      <h3>☁️ Cloud Sync</h3>
+      <h3>☁️ ${t("Cloud Sync")}</h3>
       ${Cloud.enabled
         ? (Cloud.user
           ? `<p>Signed in as <b>${esc(Cloud.user.email || "your account")}</b>. Your data syncs automatically to every device you log in on. Status: <b style="color:${Cloud.status==='synced'?'var(--win)':Cloud.status==='error'?'var(--loss)':'var(--draw)'}">${Cloud.status}</b>.</p>
              <div class="settings-actions">
-               <button class="btn btn-ghost" onclick="cloudPush(true).then(()=>toast('Synced to cloud.','success')).catch(()=>toast('Sync failed.','error'))">Sync now</button>
-               <button class="btn btn-danger" onclick="cloudSignOut()">Sign out</button>
+               <button class="btn btn-ghost" onclick="cloudPush(true).then(()=>toast(t('Synced to cloud.'),'success')).catch(()=>toast(t('Sync failed.'),'error'))">${t("Sync now")}</button>
+               <button class="btn btn-danger" onclick="cloudSignOut()">${t("Sign out")}</button>
              </div>`
           : `<p>Cloud sync is configured but you're in local-only mode. Reload and sign in to sync across devices.</p>
-             <div class="settings-actions"><button class="btn btn-primary" onclick="showAuth(true)">Sign in</button></div>`)
+             <div class="settings-actions"><button class="btn btn-primary" onclick="showAuth(true)">${t("Sign in")}</button></div>`)
         : `<p>This copy is running <b>local-only</b> — data lives in this browser. To sync across devices, add your Supabase keys at the top of the HTML file (see the setup guide that came with it).</p>`}
     </div>
 
     <div class="settings-card glass">
-      <h3>💾 Export Data</h3>
-      <p>Download a complete JSON snapshot of every deck and match. Use this to migrate between browsers or keep an archive.</p>
+      <h3>💾 ${t("Export Data")}</h3>
+      <p>${t("Download a complete JSON snapshot of every deck and match. Use this to migrate between browsers or keep an archive.")}</p>
       <div class="settings-actions">
-        <button class="btn btn-primary" onclick="exportData()">Export as JSON</button>
-        <button class="btn btn-gold" onclick="backupData()">One-Click Backup</button>
+        <button class="btn btn-primary" onclick="exportData()">${t("Export as JSON")}</button>
+        <button class="btn btn-gold" onclick="backupData()">${t("One-Click Backup")}</button>
       </div>
     </div>
 
     <div class="settings-card glass">
-      <h3>📥 Import Data</h3>
-      <p>Load a previously exported JSON file. <b>This replaces all current data</b>, so back up first if needed.</p>
-      <div class="dz" id="impDrop">⬆ Drop a .json file here or click to choose</div>
+      <h3>📥 ${t("Import Data")}</h3>
+      <p>${t("Load a previously exported JSON file. This replaces all current data, so back up first if needed.")}</p>
+      <div class="dz" id="impDrop">${t("⬆ Drop a .json file here or click to choose")}</div>
       <input type="file" id="impFile" accept=".json,application/json" style="display:none">
     </div>
 
     <div class="settings-card glass">
-      <h3>🎨 Appearance</h3>
-      <p>Toggle between the default dark esports theme and a clean light theme.</p>
+      <h3>🎨 ${t("Appearance")}</h3>
+      <p>${t("Toggle between the default dark esports theme and a clean light theme.")}</p>
       <div class="settings-actions">
         <button class="btn btn-ghost" onclick="toggleTheme()">Switch to ${State.settings.theme === "dark" ? "Light" : "Dark"} Mode</button>
       </div>
     </div>
 
     <div class="settings-card glass" style="border-color:rgba(255,93,108,.3)">
-      <h3>⚠ Danger Zone</h3>
-      <p>Permanently delete all decks and matches from this browser. This cannot be undone.</p>
+      <h3>⚠ ${t("Danger Zone")}</h3>
+      <p>${t("Permanently delete all decks and matches from this browser. This cannot be undone.")}</p>
       <div class="settings-actions">
-        <button class="btn btn-danger" onclick="resetData()">Reset All Data</button>
-        <button class="btn btn-ghost" onclick="reseedData()">Reload Demo Data</button>
+        <button class="btn btn-danger" onclick="resetData()">${t("Reset All Data")}</button>
+        <button class="btn btn-ghost" onclick="reseedData()">${t("Reload Demo Data")}</button>
       </div>
     </div>`;
 
@@ -2387,14 +2744,14 @@ function reseedData() {
 /* 10. SHARED COMPONENTS                                              */
 /* ------------------------------------------------------------------ */
 function emptyState(ico, title, sub, action = "") {
-  return `<div class="glass empty" style="margin-top:10px"><div class="ico">${ico}</div><h3>${title}</h3><p>${sub}</p><div style="margin-top:18px">${action}</div></div>`;
+  return `<div class="glass empty" style="margin-top:10px"><div class="ico">${ico}</div><h3>${t(title)}</h3><p>${t(sub)}</p><div style="margin-top:18px">${action}</div></div>`;
 }
 /** Generic confirm modal that runs `onYes` when confirmed. */
 function confirmModal(title, body, onYes, yesLabel = "Confirm") {
-  openModal(`<h2>${title}</h2><p class="sub" style="margin-bottom:0">${body}</p>
+  openModal(`<h2>${t(title)}</h2><p class="sub" style="margin-bottom:0">${body}</p>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" id="confirmYes">${yesLabel}</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-danger" id="confirmYes">${t(yesLabel)}</button>
     </div>`);
   $("#confirmYes").onclick = () => { closeModal(); onYes(); };
 }
@@ -2445,6 +2802,8 @@ window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(()
 /** Start the actual app UI (called after data is ready). */
 function startApp() {
   applyTheme();
+  applyStaticI18n();
+  const b = $("#langToggle"); if (b) b.textContent = lang() === "en" ? "ES" : "EN";
   $("#navDeckCount").textContent  = State.decks.length;
   $("#navMatchCount").textContent = State.matches.length;
   navigate("dashboard");
