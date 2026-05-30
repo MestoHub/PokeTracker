@@ -257,6 +257,15 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 .btn-icon.note-open{background:var(--grad-accent);color:#fff;border-color:transparent}
 .consistency{position:relative}
 .dl-tab.active{background:var(--grad-accent);color:#fff;border-color:transparent}
+/* ---- dashboard deck scope selector ---- */
+.dash-scope{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.dash-scope label{font-size:13px;color:var(--txt-2);font-weight:600;white-space:nowrap}
+.dash-scope .select{max-width:300px;font-family:'Chakra Petch';font-weight:600}
+.cons-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 18px;margin-bottom:6px}
+.cons-title{font-family:'Chakra Petch';font-size:14px;color:var(--txt-0);margin-right:auto}
+.cons-chip{display:flex;flex-direction:column;background:var(--bg-2);border:1px solid var(--stroke);border-radius:10px;padding:7px 13px;min-width:78px}
+.cons-chip span{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-2)}
+.cons-chip b{font-family:'Chakra Petch';font-size:16px}
 .deck-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
 .deck-stat{background:var(--bg-2);border-radius:10px;padding:9px 11px;border:1px solid var(--stroke)}
 .deck-stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-2)}
@@ -955,12 +964,19 @@ function parseDecklist(text) {
     const m = line.match(/^(\d+)\s*x?\s+(.*)$/i);
     if (!m) continue;
     const count = parseInt(m[1], 10) || 0;
-    let name = m[2].replace(/\s+[A-Z]{2,4}\s+\d+[a-zA-Z]?$/, "")  // strip "OBF 125"
-                   .replace(/\s+\d+$/, "").trim();                // strip trailing num
+    const rest = m[2].trim();
+    // Capture an optional trailing "SET NUMBER" (e.g. "OBF 125", "SVI 191", "GG 33").
+    // Set code = 2-5 uppercase/alnum chars; number = digits with optional letter suffix.
+    let setCode = "", setNum = "";
+    const setMatch = rest.match(/\s+([A-Z][A-Z0-9]{1,4})\s+(\d+[a-zA-Z]?)$/);
+    if (setMatch) { setCode = setMatch[1]; setNum = setMatch[2]; }
+    let name = rest.replace(/\s+[A-Z][A-Z0-9]{1,4}\s+\d+[a-zA-Z]?$/, "")  // strip "OBF 125"
+                   .replace(/\s+\d+$/, "").trim();                         // strip lone trailing num
     const lname = name.toLowerCase();
     res.total += count;
-    res.cards.push({ count, name, section });
-    res.sections[section].push({ count, name });
+    const card = { count, name, section, setCode, setNum };
+    res.cards.push(card);
+    res.sections[section].push(card);
 
     if (section === "pokemon") {
       res.pokemon += count;
@@ -1211,8 +1227,10 @@ function tally(list) {
 const by = (list, fn) => list.filter(fn);
 
 /** Global dashboard statistics object. */
-function globalStats() {
-  const M = State.matches;
+/** Dashboard stats over an optional match subset (defaults to all matches). */
+function globalStats(matchList) {
+  const M = matchList || State.matches;
+  const bricked = M.filter(m => m.bricked).length;
   return {
     all:    tally(M),
     first:  tally(by(M, m => m.position === "First")),
@@ -1221,7 +1239,16 @@ function globalStats() {
     inperson: tally(by(M, m => m.type === "In Person")),
     bo1:    tally(by(M, m => m.format === "BO1")),
     bo3:    tally(by(M, m => m.format === "BO3")),
+    bricked,
+    brickRate: pct(bricked, M.length),
   };
+}
+
+/** Current dashboard scope: "" = all decks, or a deckId. */
+let dashFilter = "";
+/** The match list the dashboard is currently scoped to. */
+function dashMatches() {
+  return dashFilter ? by(State.matches, m => m.deckId === dashFilter) : State.matches;
 }
 
 /** Per-deck analytics for a single deck. */
@@ -1263,11 +1290,12 @@ function toast(msg, kind = "info") {
   setTimeout(() => el.remove(), 2950);
 }
 
-function openModal(html) {
+function openModal(html, wide) {
   $("#modalBox").innerHTML = html;
+  $("#modalBox").classList.toggle("wide", !!wide);
   $("#modalScrim").classList.add("open");
 }
-function closeModal() { $("#modalScrim").classList.remove("open"); $("#modalBox").innerHTML = ""; }
+function closeModal() { $("#modalScrim").classList.remove("open"); $("#modalBox").classList.remove("wide"); $("#modalBox").innerHTML = ""; }
 $("#modalScrim").addEventListener("click", e => { if (e.target.id === "modalScrim") closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
@@ -1318,7 +1346,6 @@ function statCard(label, value, sub, cls = "") {
 }
 
 function renderDashboard() {
-  const g = globalStats();
   const el = $("#page-dashboard");
 
   if (State.matches.length === 0) {
@@ -1328,16 +1355,44 @@ function renderDashboard() {
     return;
   }
 
-  el.innerHTML = `
+  // Keep the filter valid (deck may have been deleted).
+  if (dashFilter && !State.decks.some(d => d.id === dashFilter)) dashFilter = "";
+  const M = dashMatches();
+  const g = globalStats(M);
+  const scoped = !!dashFilter;
+  const deck = scoped ? State.decks.find(d => d.id === dashFilter) : null;
+
+  // Deck selector pill row.
+  const selector = `
+    <div class="dash-scope">
+      <label>Showing stats for</label>
+      <select class="select" id="dashDeck" onchange="setDashFilter(this.value)">
+        <option value="" ${!scoped ? "selected" : ""}>🏆 All decks (combined)</option>
+        ${State.decks.map(d => `<option value="${d.id}" ${dashFilter === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}
+      </select>
+      ${scoped ? `<button class="btn btn-ghost btn-sm" onclick="setDashFilter('')">✕ Clear</button>` : ""}
+    </div>`;
+
+  // First tile changes label depending on scope.
+  const firstTile = scoped
+    ? statCard("Matches", g.all.total, esc(deck.name), "accent")
+    : statCard("Total Matches", g.all.total, `${State.decks.length} decks tracked`, "accent");
+  const lastTile = scoped
+    ? statCard("Brick Rate", g.brickRate + "%", `${g.bricked} bricked games`, g.brickRate <= 12 ? "win" : "loss")
+    : statCard("Active Decks", State.decks.length, "in rotation", "accent");
+
+  el.innerHTML = selector + `
     <!-- Global stat tiles -->
     <div class="grid stat-grid">
-      ${statCard("Total Matches", g.all.total, `${State.decks.length} decks tracked`, "accent")}
+      ${firstTile}
       ${statCard("Wins", g.all.w, "decisive victories", "win")}
       ${statCard("Losses", g.all.l, "", "loss")}
       ${statCard("Draws", g.all.d, "")}
-      ${statCard("Overall Win %", g.all.wr + "%", g.all.record + " (W-L-D)", "gold")}
-      ${statCard("Active Decks", State.decks.length, "in rotation", "accent")}
+      ${statCard(scoped ? "Win %" : "Overall Win %", g.all.wr + "%", g.all.record + " (W-L-D)", "gold")}
+      ${lastTile}
     </div>
+
+    ${scoped ? deckConsistencyBanner(deck) : ""}
 
     <!-- Split metrics -->
     <div class="section-head"><h2><span class="dot"></span> Performance Splits</h2></div>
@@ -1354,19 +1409,22 @@ function renderDashboard() {
     <div class="section-head"><h2><span class="dot"></span> Visual Analytics</h2></div>
     <div class="grid chart-grid">
       <div class="chart-card glass"><h3>📈 Win / Loss Trend</h3><div class="chart-wrap"><canvas id="cTrend"></canvas></div></div>
-      <div class="chart-card glass"><h3>🏆 Win % by Deck</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>
+      ${scoped
+        ? `<div class="chart-card glass"><h3>🆚 Win % vs Opponents</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>`
+        : `<div class="chart-card glass"><h3>🏆 Win % by Deck</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>`}
       <div class="chart-card glass"><h3>🌐 Online vs In-Person</h3><div class="chart-wrap"><canvas id="cType"></canvas></div></div>
       <div class="chart-card glass"><h3>🎲 First vs Second</h3><div class="chart-wrap"><canvas id="cPos"></canvas></div></div>
     </div>
 
-    <!-- Deck rankings -->
+    ${scoped ? "" : `
+    <!-- Deck rankings (only in combined view) -->
     <div class="section-head"><h2><span class="dot"></span> Deck Rankings</h2></div>
     <div class="glass" style="padding:8px 4px">
       <div class="table-wrap">
         <table>
           <thead><tr><th>#</th><th>Deck</th><th>Record</th><th>Win %</th><th>Online</th><th>In-Person</th><th>1st</th><th>2nd</th></tr></thead>
           <tbody>${rankedDecks().map((r, i) => `
-            <tr>
+            <tr style="cursor:pointer" onclick="setDashFilter('${r.deck.id}')">
               <td><span class="pill ${i===0?'win':'muted'}">${i+1}</span></td>
               <td><div class="cell-deck">${pokeSprite(r.deck.name,24)}<b>${esc(r.deck.name)}</b></div></td>
               <td>${r.s.record}</td>
@@ -1379,9 +1437,29 @@ function renderDashboard() {
           </tbody>
         </table>
       </div>
-    </div>`;
+    </div>`}`;
 
-  buildCharts(g);
+  buildCharts(g, M, scoped);
+}
+
+/** Set the dashboard deck scope and re-render. */
+function setDashFilter(id) { dashFilter = id || ""; renderDashboard(); }
+
+/** Small banner showing a selected deck's theoretical consistency (from its list). */
+function deckConsistencyBanner(deck) {
+  const rep = consistencyReport(parseDecklist(deck.decklist), deck.overrides || {});
+  if (!rep.total) return "";
+  const chip = (label, val, good, ok) => {
+    const col = val <= good ? "var(--win)" : val <= ok ? "var(--draw)" : "var(--loss)";
+    return `<div class="cons-chip"><span>${label}</span><b style="color:${col}">${val}%</b></div>`;
+  };
+  return `<div class="glass cons-banner">
+    <div class="cons-title">🧪 ${esc(deck.name)} — decklist consistency</div>
+    ${chip("Mulligan", rep.mulligan, 9, 16)}
+    ${chip("Brick est.", rep.brick, 8, 15)}
+    <div class="cons-chip"><span>Good opener</span><b style="color:${rep.good>=70?'var(--win)':'var(--draw)'}">${rep.good}%</b></div>
+    <div class="cons-chip"><span>Basics</span><b>${rep.basics}</b></div>
+  </div>`;
 }
 
 function splitCard(label, t) {
@@ -1397,16 +1475,17 @@ function splitCard(label, t) {
 function wrColor(wr) { return wr >= 55 ? "#2fd07a" : wr >= 45 ? "#ffb547" : "#ff5d6c"; }
 
 /** Build all four dashboard charts; theme-aware colors. */
-function buildCharts(g) {
+function buildCharts(g, matchList, scoped) {
   destroyCharts();
+  const M = matchList || State.matches;
   const css = getComputedStyle(document.body);
   const txt = css.getPropertyValue("--txt-1").trim();
   const grid = css.getPropertyValue("--stroke").trim();
   Chart.defaults.color = txt;
   Chart.defaults.font.family = "Sora, sans-serif";
 
-  // --- Trend: cumulative win % over time ---
-  const sorted = [...State.matches].sort((a, b) => a.date.localeCompare(b.date));
+  // --- Trend: cumulative win % over time (within current scope) ---
+  const sorted = [...M].sort((a, b) => a.date.localeCompare(b.date));
   let cw = 0, cd = 0;
   const labels = [], data = [];
   sorted.forEach((m, i) => {
@@ -1423,12 +1502,33 @@ function buildCharts(g) {
                 x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } } }
   });
 
-  // --- Deck win % bar ---
-  const rd = rankedDecks().filter(r => r.s.total > 0);
+  // --- Bar chart: win % by deck (combined) OR vs opponents (scoped) ---
+  let barLabels, barData, barColors;
+  if (scoped) {
+    // Group the scoped matches by opponent deck and compute win % each.
+    const groups = {};
+    M.forEach(m => {
+      const k = (m.opponent || "Unknown").trim() || "Unknown";
+      (groups[k] = groups[k] || []).push(m);
+    });
+    const rows = Object.entries(groups)
+      .map(([opp, list]) => ({ opp, s: tally(list) }))
+      .filter(r => r.s.total > 0)
+      .sort((a, b) => b.s.total - a.s.total)
+      .slice(0, 10);
+    barLabels = rows.map(r => r.opp);
+    barData = rows.map(r => r.s.wr);
+    barColors = rows.map(r => wrColor(r.s.wr));
+  } else {
+    const rd = rankedDecks().filter(r => r.s.total > 0);
+    barLabels = rd.map(r => r.deck.name);
+    barData = rd.map(r => r.s.wr);
+    barColors = rd.map(r => wrColor(r.s.wr));
+  }
   charts.deck = new Chart($("#cDeck"), {
     type: "bar",
-    data: { labels: rd.map(r => r.deck.name), datasets: [{ label: "Win %", data: rd.map(r => r.s.wr),
-      backgroundColor: rd.map(r => wrColor(r.s.wr)), borderRadius: 8, maxBarThickness: 46 }] },
+    data: { labels: barLabels, datasets: [{ label: "Win %", data: barData,
+      backgroundColor: barColors, borderRadius: 8, maxBarThickness: 46 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
       scales: { y: { min: 0, max: 100, grid: { color: grid }, ticks: { callback: v => v + "%" } },
                 x: { grid: { display: false } } } }
@@ -1671,7 +1771,7 @@ function viewDecklist(id) {
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Close</button>
       <button class="btn btn-ghost" onclick="copyDecklist('${d.id}')">Copy text</button>
-      <button class="btn btn-gold" id="dlDownload" onclick="downloadDeckImage('${d.id}')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>⬇ Save as JPG</button>
+      <button class="btn btn-gold" id="dlDownload" data-deck="${d.id}" onclick="downloadDeckImage('${d.id}')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>⬇ Save as JPG</button>
       <button class="btn btn-primary" onclick="openDeckModal('${d.id}')">Edit</button>
     </div>`);
 }
@@ -1682,7 +1782,7 @@ function dlTab(which) {
   $("#dlText").style.display = which === "text" ? "" : "none";
   $("#dlImage").style.display = which === "image" ? "" : "none";
   if (which === "image") {
-    const id = $("#dlDownload").getAttribute("onclick").match(/'([^']+)'/)[1];
+    const id = $("#dlDownload").getAttribute("data-deck");
     renderDeckImage(id, "#dlCanvasHolder");
   }
 }
@@ -1693,11 +1793,10 @@ function copyDecklist(id) {
     () => toast("Copy failed.", "error"));
 }
 
-/* --- Deck image renderer (Limitless-style card grid) ------------------ */
+/* --- Deck image renderer (text + sprite sheet) ----------------------- */
 /**
  * Draw a parsed decklist into a canvas as a tidy, sprite-illustrated sheet,
- * grouped by Pokémon / Trainer / Energy, similar to Limitless's deck view.
- * Sprites load asynchronously; we redraw once images settle.
+ * grouped by Pokémon / Trainer / Energy. Sprites load asynchronously.
  * @returns {Promise<HTMLCanvasElement>}
  */
 async function buildDeckCanvas(deck) {
@@ -1819,7 +1918,7 @@ async function renderDeckImage(id, holderSel) {
     holder.innerHTML = "<span style='color:var(--loss)'>Could not render image.</span>";
   }
 }
-/** Build the image (if needed) and trigger a JPG download. */
+/** Build the image and trigger a JPG download. */
 async function downloadDeckImage(id) {
   const deck = State.decks.find(d => d.id === id);
   try {
