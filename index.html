@@ -1,0 +1,2392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PokéTracker — TCG Match & Deck Analytics</title>
+
+<!-- Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- Supabase JS v2 (used only if you fill in the CONFIG below; otherwise the app runs local-only) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* =====================================================================
+   ☁️  CLOUD SYNC CONFIG  —  EDIT THESE TWO LINES TO ENABLE CROSS-DEVICE SYNC
+   ---------------------------------------------------------------------
+   Leave them blank to keep the app fully local (data stays in this browser).
+   Fill them in (see the SETUP GUIDE that came with this file) to sync your
+   decks & matches to the cloud and access them from any device by logging in.
+
+     1) Create a free project at https://supabase.com
+     2) In your project: Settings → API  (or the "Connect" dialog)
+        • copy the Project URL            -> SUPABASE_URL
+        • copy the "anon"/"publishable" key -> SUPABASE_KEY
+     3) Run the SQL from the setup guide (creates your table + security)
+     4) Paste the two values below, save, and host the file.
+   ===================================================================== */
+window.SUPABASE_URL = "https://supabase.com/dashboard/project/mcajewuhmpncxnmrkqzv/settings/api-keys";   // e.g. "https://abcdefgh.supabase.co"
+window.SUPABASE_KEY = "sb_publishable_sppABXOQ6ichLjbFi6FM6Q_VqWKjZS0";   // e.g. "sb_publishable_xxx..."  or legacy anon key
+</script>
+
+<!-- Fonts: distinctive display + clean body -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<style>
+/* =====================================================================
+   POKÉTRACKER — Single-file TCG analytics app
+   Sections: 1) Theme tokens  2) Base/layout  3) Sidebar/nav
+             4) Cards/stats  5) Forms  6) Tables  7) Charts  8) Misc
+   ===================================================================== */
+
+/* ---------- 1. THEME TOKENS (dark by default) ---------- */
+:root {
+  --bg-0:#0a0e1a;            /* deepest background */
+  --bg-1:#101728;            /* panel base */
+  --bg-2:#16203a;            /* raised */
+  --glass:rgba(28,40,68,0.55);
+  --glass-border:rgba(120,160,255,0.14);
+  --stroke:rgba(255,255,255,0.07);
+
+  --txt-0:#eef3ff;           /* primary text */
+  --txt-1:#aebbd6;           /* secondary */
+  --txt-2:#6b7896;           /* muted */
+
+  /* Pokémon-inspired energy palette */
+  --poke-red:#ee1c25;
+  --poke-blue:#3d7dca;
+  --poke-yellow:#ffcb05;
+  --poke-gold:#b3a125;
+  --accent:#5b8cff;          /* electric blue accent */
+  --accent-2:#ffcb05;        /* lightning yellow */
+  --win:#2fd07a;
+  --loss:#ff5d6c;
+  --draw:#ffb547;
+
+  --grad-accent:linear-gradient(135deg,#5b8cff 0%,#7b5bff 100%);
+  --grad-gold:linear-gradient(135deg,#ffcb05 0%,#ff9a3d 100%);
+  --grad-win:linear-gradient(135deg,#2fd07a 0%,#1ba6c9 100%);
+
+  --radius:18px;
+  --radius-sm:12px;
+  --shadow:0 14px 40px rgba(0,0,0,0.45);
+  --shadow-glow:0 0 0 1px var(--glass-border),0 18px 50px rgba(20,40,100,0.35);
+  --sidebar-w:248px;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --bg-0:#eef1f8;
+  --bg-1:#ffffff;
+  --bg-2:#f3f6fd;
+  --glass:rgba(255,255,255,0.7);
+  --glass-border:rgba(60,110,210,0.18);
+  --stroke:rgba(20,30,60,0.08);
+  --txt-0:#101728;
+  --txt-1:#3a4768;
+  --txt-2:#7c89a8;
+  --shadow:0 14px 40px rgba(40,60,120,0.14);
+  --shadow-glow:0 0 0 1px var(--glass-border),0 18px 50px rgba(60,100,200,0.16);
+}
+
+/* ---------- 2. BASE / LAYOUT ---------- */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Sora',system-ui,sans-serif;
+  background:var(--bg-0);
+  color:var(--txt-0);
+  line-height:1.5;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  transition:background .4s ease,color .3s ease;
+}
+/* Ambient background glow / poké-ball motif */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(680px 460px at 12% -8%,rgba(91,140,255,0.18),transparent 60%),
+    radial-gradient(620px 520px at 100% 0%,rgba(255,203,5,0.10),transparent 55%),
+    radial-gradient(800px 700px at 80% 110%,rgba(123,91,255,0.12),transparent 60%);
+}
+[data-theme="light"] body::before{opacity:.55}
+
+h1,h2,h3,h4{font-family:'Chakra Petch',sans-serif;letter-spacing:.3px;font-weight:600;line-height:1.15}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit}
+
+.app{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* ---------- 3. SIDEBAR / NAVIGATION ---------- */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:linear-gradient(180deg,var(--bg-1),var(--bg-0));
+  border-right:1px solid var(--stroke);
+  padding:22px 16px;
+  display:flex;flex-direction:column;gap:6px;
+  position:sticky;top:0;height:100vh;
+  z-index:50;
+}
+.brand{display:flex;align-items:center;gap:12px;padding:6px 8px 20px}
+.pokeball{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:
+    linear-gradient(#ee1c25 0 50%,#fff 50% 100%);
+  position:relative;border:2.5px solid #11151f;
+  box-shadow:0 4px 14px rgba(238,28,37,.35);
+}
+.pokeball::before{content:"";position:absolute;top:calc(50% - 1.5px);left:0;width:100%;height:3px;background:#11151f}
+.pokeball::after{content:"";position:absolute;top:50%;left:50%;width:12px;height:12px;border-radius:50%;background:#fff;border:2.5px solid #11151f;transform:translate(-50%,-50%)}
+.brand-text b{font-family:'Chakra Petch';font-size:18px;display:block;letter-spacing:.5px}
+.brand-text span{font-size:11px;color:var(--txt-2);letter-spacing:1.5px;text-transform:uppercase}
+
+.nav-item{
+  display:flex;align-items:center;gap:13px;
+  padding:12px 14px;border-radius:var(--radius-sm);
+  color:var(--txt-1);font-weight:500;font-size:14.5px;
+  transition:all .2s ease;position:relative;
+}
+.nav-item svg{width:20px;height:20px;flex-shrink:0}
+.nav-item:hover{background:var(--bg-2);color:var(--txt-0);transform:translateX(2px)}
+.nav-item.active{
+  background:var(--grad-accent);color:#fff;
+  box-shadow:0 8px 22px rgba(91,140,255,.4);
+}
+.nav-item.active svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.3))}
+.sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--stroke);font-size:11px;color:var(--txt-2);text-align:center}
+
+/* ---------- MAIN CONTENT ---------- */
+.main{flex:1;min-width:0;padding:26px 30px 70px;max-width:1500px;margin:0 auto;width:100%}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+.page-title h1{font-size:28px}
+.page-title p{color:var(--txt-2);font-size:13.5px;margin-top:3px}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+
+.theme-toggle{
+  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  background:var(--glass);border:1px solid var(--glass-border);
+  transition:all .25s;
+}
+.theme-toggle:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.theme-toggle svg{width:20px;height:20px}
+
+/* mobile hamburger */
+.hamburger{display:none;width:44px;height:44px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);place-items:center}
+.hamburger svg{width:22px;height:22px}
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:45;backdrop-filter:blur(2px)}
+
+/* ---------- 4. CARDS / STAT TILES ---------- */
+.glass{
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius);
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  box-shadow:var(--shadow-glow);
+}
+.grid{display:grid;gap:16px}
+.stat-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+
+.stat-card{
+  padding:18px 18px 16px;position:relative;overflow:hidden;
+  animation:rise .5s cubic-bezier(.2,.7,.3,1) both;
+}
+.stat-card::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:var(--grad-accent);opacity:.10;filter:blur(6px)}
+.stat-card .label{font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--txt-2);font-weight:600}
+.stat-card .value{font-family:'Chakra Petch';font-size:30px;font-weight:700;margin-top:8px;line-height:1}
+.stat-card .sub{font-size:12px;color:var(--txt-1);margin-top:6px}
+.stat-card.accent .value{background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-card.gold .value{background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-card.gold::after{background:var(--grad-gold)}
+.stat-card.win .value{color:var(--win)}
+.stat-card.loss .value{color:var(--loss)}
+
+/* small ring progress */
+.ring{--p:0;--c:var(--accent);width:54px;height:54px;border-radius:50%;
+  background:conic-gradient(var(--c) calc(var(--p)*1%),var(--bg-2) 0);
+  display:grid;place-items:center;position:relative;flex-shrink:0}
+.ring::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--bg-1)}
+.ring span{position:relative;font-family:'Chakra Petch';font-size:13px;font-weight:700}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:30px 0 14px;gap:12px}
+.section-head h2{font-size:18px;display:flex;align-items:center;gap:9px}
+.section-head h2 .dot{width:9px;height:9px;border-radius:3px;background:var(--accent-2)}
+
+/* chart cards */
+.chart-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.chart-card{padding:18px}
+.chart-card h3{font-size:14.5px;margin-bottom:14px;color:var(--txt-1);display:flex;align-items:center;gap:8px}
+.chart-wrap{position:relative;height:260px}
+
+/* ---------- DECK CARDS ---------- */
+.deck-grid{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+.deck-card{padding:18px;position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s;animation:rise .5s both}
+.deck-card:hover{transform:translateY(-4px)}
+.deck-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.deck-card h3{font-size:17px;max-width:70%}
+.deck-card .created{font-size:11.5px;color:var(--txt-2);margin-top:3px}
+.deck-card .wr-badge{font-family:'Chakra Petch';font-size:20px;font-weight:700;padding:6px 12px;border-radius:12px;background:var(--bg-2);border:1px solid var(--glass-border)}
+.poke-sprite{image-rendering:pixelated;vertical-align:middle;flex-shrink:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.deck-title-row{display:flex;align-items:center;gap:10px}
+.deck-title-row .poke-sprite{width:42px;height:42px}
+.cell-deck{display:flex;align-items:center;gap:9px}
+/* bulk-selection toolbar in history */
+.bulk-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:14px;animation:rise .3s both}
+.bulk-bar .count{font-weight:600;color:var(--txt-0)}
+.bulk-bar .spacer{flex:1}
+.chk{width:18px;height:18px;border-radius:5px;border:2px solid var(--glass-border);background:var(--bg-2);display:inline-grid;place-items:center;cursor:pointer;transition:all .15s;flex-shrink:0}
+.chk svg{width:12px;height:12px;opacity:0;transition:opacity .12s}
+.chk.on{background:var(--grad-accent);border-color:transparent}
+.chk.on svg{opacity:1}
+tbody tr.selected{background:rgba(91,140,255,.12)}
+/* consistency strip on deck cards */
+.consistency-strip{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.cs-item{flex:1;min-width:90px;background:var(--bg-2);border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.cs-item .cs-k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-2)}
+.cs-item b{font-family:'Chakra Petch';font-size:15px}
+/* expandable match detail rows */
+.detail-row td{background:var(--bg-2);padding:0!important;border-bottom:1px solid var(--glass-border)}
+.match-detail{padding:14px 16px;display:flex;flex-direction:column;gap:10px;animation:fade .25s}
+.note-block{display:flex;flex-direction:column;gap:3px}
+.note-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);font-weight:700}
+.note-block p{font-size:13px;color:var(--txt-1);line-height:1.55;white-space:pre-wrap;margin:0}
+.btn-icon.note-open{background:var(--grad-accent);color:#fff;border-color:transparent}
+.consistency{position:relative}
+.dl-tab.active{background:var(--grad-accent);color:#fff;border-color:transparent}
+.deck-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
+.deck-stat{background:var(--bg-2);border-radius:10px;padding:9px 11px;border:1px solid var(--stroke)}
+.deck-stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-2)}
+.deck-stat .v{font-family:'Chakra Petch';font-size:15px;font-weight:600;margin-top:2px}
+.deck-card .actions{display:flex;gap:8px;margin-top:16px}
+.rank-badge{position:absolute;top:14px;right:14px;font-family:'Chakra Petch';font-size:11px;font-weight:700;color:var(--bg-0);background:var(--grad-gold);padding:3px 9px;border-radius:20px}
+
+/* ---------- 5. BUTTONS / FORMS ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 18px;border-radius:12px;font-weight:600;font-size:14px;
+  transition:all .2s ease;border:1px solid transparent;white-space:nowrap;
+}
+.btn svg{width:17px;height:17px}
+.btn-primary{background:var(--grad-accent);color:#fff;box-shadow:0 8px 22px rgba(91,140,255,.34)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(91,140,255,.5)}
+.btn-gold{background:var(--grad-gold);color:#1a1408;box-shadow:0 8px 22px rgba(255,160,40,.34)}
+.btn-gold:hover{transform:translateY(-2px)}
+.btn-ghost{background:var(--bg-2);border-color:var(--glass-border);color:var(--txt-1)}
+.btn-ghost:hover{color:var(--txt-0);border-color:var(--accent);transform:translateY(-1px)}
+.btn-danger{background:rgba(255,93,108,.13);color:var(--loss);border-color:rgba(255,93,108,.35)}
+.btn-danger:hover{background:rgba(255,93,108,.22)}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:9px}
+.btn-icon{padding:8px;width:34px;height:34px}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12.5px;font-weight:600;color:var(--txt-1);letter-spacing:.3px}
+.field label .opt{color:var(--txt-2);font-weight:400;font-size:11px}
+.input,.select,.textarea{
+  background:var(--bg-2);border:1px solid var(--glass-border);
+  border-radius:11px;padding:11px 13px;color:var(--txt-0);font-size:14px;
+  transition:border-color .2s,box-shadow .2s;width:100%;
+}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
+.textarea{resize:vertical;min-height:90px;line-height:1.5;font-family:'Sora'}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px}
+select.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7896' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+
+/* segmented toggle (radio) groups */
+.seg{display:flex;gap:6px;background:var(--bg-2);padding:5px;border-radius:12px;border:1px solid var(--glass-border);flex-wrap:wrap}
+.seg label{flex:1;min-width:fit-content}
+.seg input{display:none}
+.seg span{display:block;text-align:center;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--txt-1);transition:all .18s;white-space:nowrap}
+.seg input:checked+span{background:var(--grad-accent);color:#fff;box-shadow:0 4px 12px rgba(91,140,255,.4)}
+.seg.win input:checked[value="Win"]+span,.seg.win input:checked[value="Match Win"]+span{background:var(--grad-win)}
+.seg.win input:checked[value="Loss"]+span,.seg.win input:checked[value="Match Loss"]+span{background:linear-gradient(135deg,#ff5d6c,#c9355f)}
+
+/* ---------- 6. TABLES ---------- */
+.table-wrap{overflow-x:auto;border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+thead th{
+  text-align:left;padding:13px 14px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--txt-2);font-weight:700;
+  border-bottom:1px solid var(--glass-border);white-space:nowrap;cursor:pointer;user-select:none;
+}
+thead th:hover{color:var(--txt-0)}
+tbody td{padding:13px 14px;border-bottom:1px solid var(--stroke);color:var(--txt-1);vertical-align:middle}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:var(--bg-2)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600}
+.pill.win{background:rgba(47,208,122,.15);color:var(--win)}
+.pill.loss{background:rgba(255,93,108,.15);color:var(--loss)}
+.pill.draw{background:rgba(255,181,71,.15);color:var(--draw)}
+.pill.muted{background:var(--bg-2);color:var(--txt-1);border:1px solid var(--stroke)}
+.row-actions{display:flex;gap:6px}
+
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:16px;padding:16px}
+
+/* ---------- 7. MODAL ---------- */
+.modal-scrim{position:fixed;inset:0;background:rgba(4,8,18,.7);backdrop-filter:blur(4px);z-index:100;display:none;place-items:center;padding:20px;animation:fade .2s}
+.modal-scrim.open{display:grid}
+.modal{width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:26px;animation:pop .3s cubic-bezier(.2,.8,.3,1)}
+.modal h2{font-size:20px;margin-bottom:6px}
+.modal .sub{color:var(--txt-2);font-size:13px;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+
+/* ---------- 8. MISC ---------- */
+.page{display:none;animation:fade .35s ease}
+.page.active{display:block}
+.empty{text-align:center;padding:54px 20px;color:var(--txt-2)}
+.empty .ico{font-size:46px;margin-bottom:12px;opacity:.6}
+.empty h3{color:var(--txt-1);font-size:17px;margin-bottom:6px}
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:10px}
+/* ---- cloud auth + sync ---- */
+.auth-overlay{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:20px;
+  background:radial-gradient(900px 600px at 30% -10%,rgba(91,140,255,.22),transparent 60%),
+             radial-gradient(800px 600px at 100% 110%,rgba(123,91,255,.18),transparent 60%),var(--bg-0);
+  animation:fade .3s}
+.auth-card{width:min(420px,100%);padding:34px 30px;animation:pop .35s cubic-bezier(.2,.8,.3,1)}
+.auth-brand{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.auth-sub{color:var(--txt-1);font-size:13.5px;margin-bottom:20px;line-height:1.5}
+.auth-error{background:rgba(255,93,108,.13);border:1px solid rgba(255,93,108,.35);color:var(--loss);
+  border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:12px}
+.auth-switch{text-align:center;font-size:13px;color:var(--txt-2);margin-top:16px}
+.auth-switch a{color:var(--accent);font-weight:600;cursor:pointer;margin-left:5px}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:var(--txt-2);font-size:11.5px}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--stroke)}
+.sync-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:11px;
+  background:var(--glass);border:1px solid var(--glass-border);font-size:12px;font-weight:600;color:var(--txt-1)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--win);flex-shrink:0;box-shadow:0 0 0 3px rgba(47,208,122,.18)}
+.sync-dot.syncing{background:var(--draw);box-shadow:0 0 0 3px rgba(255,181,71,.2);animation:pulse 1s infinite}
+.sync-dot.error{background:var(--loss);box-shadow:0 0 0 3px rgba(255,93,108,.2)}
+.sync-dot.offline{background:var(--txt-2);box-shadow:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media(max-width:560px){.sync-pill #syncText{display:none}.sync-pill{padding:8px}}
+.toast{padding:13px 18px;border-radius:12px;background:var(--bg-2);border:1px solid var(--glass-border);box-shadow:var(--shadow);font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;animation:slideIn .3s;max-width:330px}
+.toast.success{border-left:3px solid var(--win)}
+.toast.error{border-left:3px solid var(--loss)}
+.toast.info{border-left:3px solid var(--accent)}
+.badge-count{background:var(--bg-2);border:1px solid var(--glass-border);color:var(--txt-1);font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px}
+.deck-rank-bar{height:7px;border-radius:6px;background:var(--bg-2);overflow:hidden;margin-top:9px}
+.deck-rank-bar i{display:block;height:100%;background:var(--grad-win);border-radius:6px;transition:width .8s cubic-bezier(.2,.8,.3,1)}
+.settings-card{padding:20px;margin-bottom:16px}
+.settings-card h3{font-size:16px;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+.settings-card p{font-size:13px;color:var(--txt-2);margin-bottom:14px;max-width:560px}
+.settings-actions{display:flex;gap:10px;flex-wrap:wrap}
+.dz{border:2px dashed var(--glass-border);border-radius:12px;padding:18px;text-align:center;color:var(--txt-2);font-size:13px;transition:all .2s;cursor:pointer}
+.dz:hover,.dz.drag{border-color:var(--accent);color:var(--txt-1);background:var(--bg-2)}
+
+/* animations */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+
+/* staggered stat-card entrance */
+.stat-grid .stat-card:nth-child(1){animation-delay:.02s}
+.stat-grid .stat-card:nth-child(2){animation-delay:.06s}
+.stat-grid .stat-card:nth-child(3){animation-delay:.10s}
+.stat-grid .stat-card:nth-child(4){animation-delay:.14s}
+.stat-grid .stat-card:nth-child(5){animation-delay:.18s}
+.stat-grid .stat-card:nth-child(6){animation-delay:.22s}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:980px){
+  .main{padding:20px 18px 80px}
+}
+@media(max-width:820px){
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .3s cubic-bezier(.3,.8,.3,1)}
+  .sidebar.open{transform:none;box-shadow:var(--shadow)}
+  .hamburger{display:grid}
+  .scrim.open{display:block}
+  .page-title h1{font-size:23px}
+}
+@media(max-width:560px){
+  .main{padding:16px 13px 90px}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .deck-grid{grid-template-columns:1fr}
+  .topbar-actions .btn-label{display:none}
+  .topbar-actions .btn{padding:11px}
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<!-- ============ AUTH OVERLAY (only shown when cloud sync is enabled & logged out) ============ -->
+<div class="auth-overlay" id="authOverlay" style="display:none">
+  <div class="auth-card glass">
+    <div class="auth-brand">
+      <div class="pokeball"></div>
+      <div><b style="font-family:'Chakra Petch';font-size:22px;display:block">PokéTracker</b>
+        <span style="font-size:11px;color:var(--txt-2);letter-spacing:1.5px;text-transform:uppercase">Cloud Sync</span></div>
+    </div>
+    <p class="auth-sub" id="authSub">Sign in to access your decks &amp; matches on any device.</p>
+    <div class="field" style="margin-top:6px"><label>Email</label>
+      <input class="input" type="email" id="authEmail" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="field" style="margin-top:12px"><label>Password</label>
+      <input class="input" type="password" id="authPass" placeholder="••••••••" autocomplete="current-password"></div>
+    <div id="authError" class="auth-error" style="display:none"></div>
+    <button class="btn btn-primary" id="authPrimary" style="width:100%;margin-top:16px" onclick="cloudAuthSubmit()">Sign In</button>
+    <div class="auth-switch">
+      <span id="authSwitchText">New here?</span>
+      <a id="authSwitchLink" onclick="toggleAuthMode()">Create an account</a>
+    </div>
+    <div class="auth-divider"><span>or</span></div>
+    <button class="btn btn-ghost" style="width:100%" onclick="useLocalOnly()">Continue without an account (local only)</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="pokeball"></div>
+      <div class="brand-text"><b>PokéTracker</b><span>TCG Analytics</span></div>
+    </div>
+    <a class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" data-page="decks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>
+      Decks <span class="badge-count" id="navDeckCount" style="margin-left:auto">0</span>
+    </a>
+    <a class="nav-item" data-page="logger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Log Match
+    </a>
+    <a class="nav-item" data-page="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>
+      Match History <span class="badge-count" id="navMatchCount" style="margin-left:auto">0</span>
+    </a>
+    <a class="nav-item" data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.66.34 1.45-.05 2.09"/></svg>
+      Settings
+    </a>
+    <div class="sidebar-footer" id="sidebarFooter">
+      <div id="accountBox" style="display:none;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:7px">
+          <span class="sync-dot" id="footDot"></span>
+          <span id="accountEmail" style="color:var(--txt-1);font-size:11.5px;word-break:break-all"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="cloudSignOut()">Sign out</button>
+      </div>
+      <div id="footerTagline">Local-first · v1.1<br/>Data stays in this browser</div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px">
+        <button class="hamburger" id="hamburger" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div class="page-title" id="pageTitle">
+          <h1>Dashboard</h1><p>Your competitive overview at a glance</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="sync-pill" id="syncPill" style="display:none" title="Cloud sync status">
+          <span class="sync-dot"></span><span id="syncText">Synced</span>
+        </span>
+        <button class="btn btn-primary" id="quickLog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+          <span class="btn-label">Log Match</span>
+        </button>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"></button>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: DASHBOARD ====== -->
+    <section class="page active" id="page-dashboard"></section>
+    <!-- ====== PAGE: DECKS ====== -->
+    <section class="page" id="page-decks"></section>
+    <!-- ====== PAGE: LOGGER ====== -->
+    <section class="page" id="page-logger"></section>
+    <!-- ====== PAGE: HISTORY ====== -->
+    <section class="page" id="page-history"></section>
+    <!-- ====== PAGE: SETTINGS ====== -->
+    <section class="page" id="page-settings"></section>
+  </main>
+</div>
+
+<!-- ============ MODAL ROOT ============ -->
+<div class="modal-scrim" id="modalScrim"><div class="modal glass" id="modalBox"></div></div>
+
+<!-- ============ TOASTS ============ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   POKÉTRACKER APPLICATION LOGIC
+   ---------------------------------------------------------------------
+   Architecture:
+     • State        — in-memory mirror of LocalStorage ({decks, matches, settings})
+     • Persistence  — load()/save() with try/catch guards
+     • Stats engine — pure functions that derive every metric from matches
+     • Render layer — page renderers re-run whenever data changes
+     • Charts       — Chart.js instances rebuilt on each dashboard render
+   Data flow: mutate State -> save() -> refreshAll() -> recompute + repaint
+   ===================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 0. CONSTANTS & UTILITIES                                            */
+/* ------------------------------------------------------------------ */
+const LS_KEY = "poketracker_v1";
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pct = (n, d) => d > 0 ? Math.round((n / d) * 1000) / 10 : 0;        // one-decimal %
+const fmtDate = (iso) => { try { return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); } catch { return iso; } };
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+/* Result classification helpers — normalise BO1 + BO3 into win/loss/draw */
+function isWin(m)  { return m.result === "Win" || m.result === "Match Win"; }
+function isLoss(m) { return m.result === "Loss" || m.result === "Match Loss"; }
+function isDraw(m) { return m.result === "Draw"; }
+function isWinResult(r) { return r === "Win" || r === "Match Win"; }
+
+/* ------------------------------------------------------------------ */
+/* 1. STATE & PERSISTENCE                                             */
+/* ------------------------------------------------------------------ */
+let State = { decks: [], matches: [], settings: { theme: "dark" } };
+
+/** Load state from LocalStorage (for the current user/local key). */
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(cloudKey());
+    if (!raw) { seed(); return; }
+    State = normaliseState(JSON.parse(raw));
+  } catch (err) {
+    console.error("Local load failed, reseeding:", err);
+    toast("Saved data was corrupted — loaded fresh demo data.", "error");
+    seed();
+  }
+}
+/** Validate/normalise an incoming State object. */
+function normaliseState(obj) {
+  return {
+    decks:    Array.isArray(obj?.decks)   ? obj.decks   : [],
+    matches:  Array.isArray(obj?.matches) ? obj.matches : [],
+    settings: (obj?.settings && typeof obj.settings === "object") ? obj.settings : { theme: "dark" },
+  };
+}
+/** Write to LocalStorage only (no cloud push) — used during reconciliation. */
+function saveLocalOnly() {
+  try { localStorage.setItem(cloudKey(), JSON.stringify(State)); } catch (e) { console.error(e); }
+}
+/** Back-compat alias kept for any older references. */
+function load() { loadLocal(); }
+
+/** Persist current state locally, and (if enabled) queue a cloud sync. */
+function save() {
+  try {
+    localStorage.setItem(cloudKey(), JSON.stringify(State));
+  } catch (err) {
+    console.error("Local save failed:", err);
+    toast("Could not save locally — storage may be full or blocked.", "error");
+  }
+  if (Cloud.enabled && Cloud.user) queueCloudPush();
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* 1a. CLOUD SYNC LAYER (optional — Supabase)                          */
+/* ---------------------------------------------------------------------
+   Design: the app is local-first. LocalStorage is always the working
+   store. If SUPABASE_URL/KEY are configured AND a user is signed in,
+   we additionally mirror the whole State object to a single row in the
+   `tracker_data` table (one row per user, guarded by Row Level Security).
+   Pushes are debounced; the latest-write-wins. On login we pull the
+   cloud copy if it's newer/non-empty, else push the local copy up.
+   --------------------------------------------------------------------- */
+const Cloud = {
+  enabled: false,   // true when SUPABASE_URL + KEY are present
+  client: null,     // supabase client
+  user: null,       // current auth user (or null)
+  status: "offline" // "synced" | "syncing" | "error" | "offline"
+};
+
+/** LocalStorage key — namespaced per signed-in user so multiple accounts
+    on one browser don't clobber each other; falls back to the legacy key. */
+function cloudKey() {
+  return Cloud.user ? `poketracker_v1_${Cloud.user.id}` : LS_KEY;
+}
+
+/** Initialise the Supabase client if configured. Returns true if enabled. */
+function cloudInit() {
+  const url = (window.SUPABASE_URL || "").trim();
+  const key = (window.SUPABASE_KEY || "").trim();
+  if (!url || !key || typeof window.supabase === "undefined") {
+    Cloud.enabled = false;
+    return false;
+  }
+  try {
+    Cloud.client = window.supabase.createClient(url, key);
+    Cloud.enabled = true;
+    return true;
+  } catch (err) {
+    console.error("Supabase init failed:", err);
+    Cloud.enabled = false;
+    return false;
+  }
+}
+
+/** Update the sync indicator UI. */
+function setSyncStatus(status) {
+  Cloud.status = status;
+  const map = {
+    synced:  ["", "Synced"],
+    syncing: ["syncing", "Syncing…"],
+    error:   ["error", "Sync error"],
+    offline: ["offline", "Offline"],
+  };
+  const [cls, text] = map[status] || map.offline;
+  const pill = $("#syncPill"), dot = pill?.querySelector(".sync-dot"), foot = $("#footDot");
+  if (pill) pill.style.display = Cloud.enabled && Cloud.user ? "inline-flex" : "none";
+  if (dot) dot.className = "sync-dot " + cls;
+  if (foot) foot.className = "sync-dot " + cls;
+  const t = $("#syncText"); if (t) t.textContent = text;
+}
+
+/* ---- auth flow ---- */
+let _authMode = "signin";  // or "signup"
+
+/** Show/hide the login overlay. */
+function showAuth(show) {
+  const ov = $("#authOverlay");
+  if (ov) ov.style.display = show ? "grid" : "none";
+}
+function toggleAuthMode() {
+  _authMode = _authMode === "signin" ? "signup" : "signin";
+  $("#authPrimary").textContent = _authMode === "signin" ? "Sign In" : "Create Account";
+  $("#authSub").textContent = _authMode === "signin"
+    ? "Sign in to access your decks & matches on any device."
+    : "Create an account to sync your data across devices.";
+  $("#authSwitchText").textContent = _authMode === "signin" ? "New here?" : "Already have an account?";
+  $("#authSwitchLink").textContent = _authMode === "signin" ? "Create an account" : "Sign in instead";
+  $("#authError").style.display = "none";
+}
+function authError(msg) {
+  const e = $("#authError"); e.textContent = msg; e.style.display = "block";
+}
+
+/** Handle the Sign In / Create Account button. */
+async function cloudAuthSubmit() {
+  const email = $("#authEmail").value.trim();
+  const pass = $("#authPass").value;
+  if (!email || !pass) { authError("Enter your email and password."); return; }
+  if (pass.length < 6) { authError("Password must be at least 6 characters."); return; }
+  const btn = $("#authPrimary"); btn.disabled = true; btn.textContent = "Please wait…";
+  try {
+    let res;
+    if (_authMode === "signup") {
+      res = await Cloud.client.auth.signUp({ email, password: pass });
+      if (res.error) throw res.error;
+      // If email confirmation is on, there's no session yet.
+      if (!res.data.session) {
+        authError("Account created! Check your email to confirm, then sign in. (Tip: you can also disable email confirmation in Supabase → Authentication → Providers.)");
+        _authMode = "signin"; toggleAuthMode(); toggleAuthMode();
+        btn.disabled = false; btn.textContent = "Sign In"; return;
+      }
+    } else {
+      res = await Cloud.client.auth.signInWithPassword({ email, password: pass });
+      if (res.error) throw res.error;
+    }
+    await onSignedIn(res.data.user || res.data.session.user);
+  } catch (err) {
+    console.error(err);
+    authError(err.message || "Authentication failed.");
+    btn.disabled = false; btn.textContent = _authMode === "signin" ? "Sign In" : "Create Account";
+  }
+}
+
+/** "Continue without an account" — run the app purely local. */
+function useLocalOnly() {
+  Cloud.user = null;
+  showAuth(false);
+  bootLocal();
+  toast("Running in local-only mode.", "info");
+}
+
+/** Called once a user is authenticated: pull cloud data then start app. */
+async function onSignedIn(user) {
+  Cloud.user = user;
+  showAuth(false);
+  $("#accountBox").style.display = "block";
+  $("#accountEmail").textContent = user.email || "Signed in";
+  $("#footerTagline").style.display = "none";
+  setSyncStatus("syncing");
+
+  // 1) Load whatever we have locally for this user (instant paint).
+  loadLocal();
+  // 2) Pull the cloud copy and reconcile.
+  try {
+    const cloudState = await cloudPull();
+    if (cloudState && (cloudState.decks?.length || cloudState.matches?.length)) {
+      State = normaliseState(cloudState);
+      saveLocalOnly();              // cache it
+    } else {
+      // No cloud data yet — push whatever we have locally (incl. seed) up.
+      await cloudPush(true);
+    }
+    setSyncStatus("synced");
+  } catch (err) {
+    console.error("Cloud pull failed:", err);
+    setSyncStatus("error");
+    toast("Couldn't reach the cloud — showing local data.", "error");
+  }
+  startApp();
+}
+
+/** Sign the user out and return to the login screen. */
+async function cloudSignOut() {
+  try { await Cloud.client?.auth.signOut(); } catch {}
+  Cloud.user = null;
+  $("#accountBox").style.display = "none";
+  setSyncStatus("offline");
+  showAuth(true);
+}
+
+/* ---- data transfer ---- */
+/** Pull this user's saved State from the cloud (or null if none). */
+async function cloudPull() {
+  const { data, error } = await Cloud.client
+    .from("tracker_data").select("payload").eq("user_id", Cloud.user.id).maybeSingle();
+  if (error) throw error;
+  return data ? data.payload : null;
+}
+
+let _pushTimer = null;
+/** Debounced cloud push (called by save()). */
+function queueCloudPush() {
+  setSyncStatus("syncing");
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(() => cloudPush().catch(e => { console.error(e); setSyncStatus("error"); }), 800);
+}
+/** Upsert the full State to the user's cloud row. */
+async function cloudPush(immediate) {
+  if (!Cloud.enabled || !Cloud.user) return;
+  if (!immediate) setSyncStatus("syncing");
+  const { error } = await Cloud.client.from("tracker_data").upsert({
+    user_id: Cloud.user.id,
+    payload: State,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" }).select();
+  if (error) { console.error(error); setSyncStatus("error"); throw error; }
+  setSyncStatus("synced");
+}
+
+/* ------------------------------------------------------------------ */
+/* 1b. POKÉMON SPRITE ICONS                                           */
+/*     Mini box sprites in the style used by limitlesstcg.com (the    */
+/*     gen-8 "box icon" / National Icon Dex look). Served from the    */
+/*     public PokeAPI sprite CDN, keyed by National Pokédex number.   */
+/*     We guess the species from a deck/opponent name; anything we    */
+/*     can't map cleanly falls back to an inline Poké Ball.           */
+/* ------------------------------------------------------------------ */
+// Gen-8 box-icon sprites (authentic limitless-style); {n} = dex number.
+const ICON_BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-viii/icons/";
+// Fallback full-art sprite set that also covers Gen 9 mons missing from icons.
+const ART_BASE  = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
+
+/**
+ * Name -> National Pokédex number for common TCG archetype faces.
+ * Numbers <= 905 exist in the gen-8 icon set; higher ones use the art set.
+ */
+const DEX = {
+  charizard:6, comfey:764, gardevoir:282, lugia:249, mew:151, snorlax:143,
+  giratina:487, miraidon:1008, "chien-pao":1002, "roaring-moon":1005,
+  pikachu:25, mewtwo:150, rayquaza:384, lucario:448, greninja:658, dragapult:887,
+  arceus:493, palkia:484, dialga:483, regidrago:895, regieleki:894, zacian:888,
+  "iron-hands":992, "raging-bolt":1021, "iron-valiant":1006, koraidon:1007,
+  flutter:987, gholdengo:1000, "great-tusk":984, mimikyu:778,
+  inteleon:818, garchomp:445, kingdra:230, blissey:242,
+  // species commonly seen on decklist lines (for the deck-image renderer)
+  charmander:4, charmeleon:5, pidgey:16, pidgeot:18, rotom:479,
+  sableye:302, cramorant:845, kyogre:382, manaphy:490, ralts:280, kirlia:281,
+  gallade:475, cresselia:488, lumineon:457, stoutland:508, archeops:567,
+  squirtle:7, wartortle:8, blastoise:9, bulbasaur:1, ivysaur:2, venusaur:3,
+  eevee:133, vaporeon:134, jolteon:135, flareon:136, espeon:196, umbreon:197,
+  sylveon:700, leafeon:470, glaceon:471, snorlax2:143, lapras:131, ditto:132,
+  gengar:94, gastly:92, haunter:93, machamp:68, alakazam:65, golem:76,
+  klinklang:601, bibarel:400, baxcalibur:998, frigibax:996, arctibax:997,
+  duraludon:884, drakloak:886, drakloak2:886, dreepy:885, kabutops:141,
+  omastar:139, fossil:138, lapras2:131, banette:354, shuppet:353,
+  comfey2:764, jirachi:385, deoxys:386, lunatone:337, solrock:338,
+  radiant:6, zoroark:571, zorua:570, hydreigon:635, deino:633, zweilous:634,
+};
+
+/** Aliases: archetype phrases -> a DEX key. Checked as substrings. */
+const SPRITE_ALIASES = {
+  "lost box":"comfey", "lostbox":"comfey", "lugia":"lugia", "snorlax":"snorlax",
+  "chien-pao":"chien-pao", "chien pao":"chien-pao", "roaring moon":"roaring-moon",
+  "miraidon":"miraidon", "gardevoir":"gardevoir", "charizard":"charizard",
+  "giratina":"giratina", "mew":"mew", "raging bolt":"raging-bolt",
+  "iron hands":"iron-hands", "iron valiant":"iron-valiant", "regidrago":"regidrago",
+  "dragapult":"dragapult", "gholdengo":"gholdengo", "great tusk":"great-tusk",
+  "flutter mane":"flutter", "koraidon":"koraidon", "mimikyu":"mimikyu",
+  "inteleon":"inteleon", "garchomp":"garchomp", "kingdra":"kingdra",
+  "blissey":"blissey", "rayquaza":"rayquaza", "arceus":"arceus", "palkia":"palkia",
+  "dialga":"dialga", "lucario":"lucario", "greninja":"greninja", "zacian":"zacian",
+};
+
+/** Resolve a deck/opponent name to a DEX key, or null if no confident match. */
+function spriteKey(name) {
+  if (!name) return null;
+  let n = name.toLowerCase().trim();
+  for (const k in SPRITE_ALIASES) if (n.includes(k)) return SPRITE_ALIASES[k];
+  // strip TCG suffixes then try the first word directly against DEX
+  n = n.replace(/\b(ex|vstar|vmax|gx|v|tera)\b/g, "")
+       .replace(/[^a-z\s-]/g, "").replace(/\s+/g, " ").trim();
+  const word = (n.split(" ")[0] || "");
+  return word.length >= 3 && DEX[word] ? word : null;
+}
+
+/** Inline poké-ball SVG fallback (no network needed). */
+const POKEBALL_SVG =
+  "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='11' fill='#fff' stroke='#222' stroke-width='1.5'/><path d='M1 12a11 11 0 0122 0z' fill='#ee1c25' stroke='#222' stroke-width='1.5'/><line x1='1' y1='12' x2='23' y2='12' stroke='#222' stroke-width='1.5'/><circle cx='12' cy='12' r='3.4' fill='#fff' stroke='#222' stroke-width='1.5'/></svg>`);
+
+/** Resolve the best sprite URL for a name (icon set, art fallback, or ball). */
+function spriteURL(name) {
+  const key = spriteKey(name);
+  if (!key) return POKEBALL_SVG;
+  const dex = DEX[key];
+  return dex <= 905 ? ICON_BASE + dex + ".png" : ART_BASE + dex + ".png";
+}
+
+/**
+ * Build an <img> for a Pokémon mini-sprite based on a deck/opponent name.
+ * Falls back to the inline Poké Ball if the sprite 404s.
+ * @param {string} name deck or opponent name
+ * @param {number} size px size (default 28)
+ */
+function pokeSprite(name, size = 28) {
+  return `<img class="poke-sprite" src="${spriteURL(name)}" alt="" width="${size}" height="${size}"
+    loading="lazy" onerror="this.onerror=null;this.src='${POKEBALL_SVG}'">`;
+}
+
+/* ------------------------------------------------------------------ */
+/* 1c. DECKLIST PARSING + CONSISTENCY / BRICK MATH                    */
+/* ---------------------------------------------------------------------
+   "Mulligan" = an opening hand of 7 with ZERO Basic Pokémon. The rules
+   force a redraw, so it's a pure, exact hypergeometric calculation that
+   depends only on how many Basics are in the 60-card deck.
+
+   "Brick" = a hand that is legal (has a Basic) but functionally dead:
+   it can't develop a board or dig for pieces. We approximate this as a
+   hand that has at least one Basic BUT contains no "engine" card — i.e.
+   no Supporter, no Pokémon-search item (Ball/Nest Ball/etc.), and no
+   draw item. Bricks are fuzzier than mulligans, so we present this as
+   an *estimate* and let the player tune the engine count if needed.
+   --------------------------------------------------------------------- */
+
+/** nCr — binomial coefficient with float math (deck sizes are small). */
+function nCr(n, r) {
+  if (r < 0 || r > n) return 0;
+  r = Math.min(r, n - r);
+  let num = 1, den = 1;
+  for (let i = 0; i < r; i++) { num *= (n - i); den *= (i + 1); }
+  return num / den;
+}
+
+/**
+ * Hypergeometric: probability of drawing AT LEAST `k` successes when
+ * drawing `draws` cards from a `deck` with `succ` success cards.
+ */
+function atLeast(deck, succ, draws, k = 1) {
+  let p = 0;
+  const top = Math.min(succ, draws);
+  for (let i = k; i <= top; i++) {
+    p += (nCr(succ, i) * nCr(deck - succ, draws - i)) / nCr(deck, draws);
+  }
+  return p;
+}
+
+/* Keyword tables used to classify cards from a decklist line. */
+const SUPPORTER_WORDS = ["professor","research","arven","iono","boss's orders","boss",
+  "judge","marnie","cynthia","colress","roxanne","cheren","bird keeper","klara","avery",
+  "raihan","serena","miriam","jacq","nemona","penny","grusha","carmine","crispin",
+  "lacey","briar","janine","ethan","supporter"];
+const POKE_SEARCH_WORDS = ["ball","quick ball","nest ball","ultra ball","great ball","poké ball",
+  "level ball","heavy ball","dive ball","capturing aroma","buddy-buddy poffin","poffin",
+  "fog crystal","evolution incense","scoop up net","carrier","communication","pokégear","pokegear"];
+const DRAW_WORDS = ["ball"]; // placeholder; draw items handled below
+const DRAW_ITEM_WORDS = ["bibarel","pokégear","pokegear","trekking shoes","acro bike","battle vip pass",
+  "earthen vessel","superior energy retrieval","trainers' mail","trainer's mail","colress's experiment",
+  "research","cynthia's","irida"];
+
+/**
+ * Parse a PTCGL / Limitless style decklist string into structured counts.
+ * Recognises the "Pokémon:/Trainer:/Energy:" section headers and the
+ * "<count> <name> <SET> <num>" line format. Robust to missing headers.
+ */
+function parseDecklist(text) {
+  const res = {
+    total: 0, basics: 0, supporters: 0, search: 0, draw: 0,
+    pokemon: 0, trainers: 0, energy: 0,
+    cards: [],            // {count,name,section}
+    sections: { pokemon: [], trainer: [], energy: [] },
+    parsed: false, warning: ""
+  };
+  if (!text || !text.trim()) return res;
+
+  let section = "pokemon";   // default bucket if no headers present
+  const lines = text.split(/\r?\n/);
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    // section headers like "Pokémon: 12" / "Trainer:" / "Energy: 13"
+    const head = line.toLowerCase();
+    if (/^pok[eé]mon\b/.test(head) && !/^\d/.test(line)) { section = "pokemon"; continue; }
+    if (/^trainer/.test(head) && !/^\d/.test(line))      { section = "trainer"; continue; }
+    if (/^energy/.test(head) && !/^\d/.test(line))        { section = "energy";  continue; }
+    if (/^(total|##|\/\/)/.test(head)) continue;
+
+    // line: leading count then name (then optional SET + number)
+    const m = line.match(/^(\d+)\s*x?\s+(.*)$/i);
+    if (!m) continue;
+    const count = parseInt(m[1], 10) || 0;
+    let name = m[2].replace(/\s+[A-Z]{2,4}\s+\d+[a-zA-Z]?$/, "")  // strip "OBF 125"
+                   .replace(/\s+\d+$/, "").trim();                // strip trailing num
+    const lname = name.toLowerCase();
+    res.total += count;
+    res.cards.push({ count, name, section });
+    res.sections[section].push({ count, name });
+
+    if (section === "pokemon") {
+      res.pokemon += count;
+      // Heuristic: a Pokémon is "Basic" unless its name marks it as an evolution.
+      // Stage 1/2 lines in lists don't say so, so we use a known-evolution list
+      // plus the rule that V/ex/VSTAR/VMAX basics are common. Best-effort.
+      if (isLikelyBasic(lname)) res.basics += count;
+    } else if (section === "energy") {
+      res.energy += count;
+      // Basic Energy is NOT a Basic Pokémon, but special-energy aside,
+      // energy never counts toward basics.
+    } else {
+      res.trainers += count;
+      if (SUPPORTER_WORDS.some(w => lname.includes(w))) res.supporters += count;
+      if (POKE_SEARCH_WORDS.some(w => lname.includes(w))) res.search += count;
+      if (DRAW_ITEM_WORDS.some(w => lname.includes(w))) res.draw += count;
+    }
+  }
+  res.parsed = res.total > 0;
+  if (res.parsed && res.total !== 60)
+    res.warning = `List totals ${res.total} cards (a legal deck is 60).`;
+  return res;
+}
+
+/* Known evolution (non-Basic) Pokémon names — used to subtract from basics.
+   This is necessarily partial; users can override the Basic count manually. */
+const EVOLUTION_NAMES = ["charmeleon","charizard","ivysaur","venusaur","wartortle","blastoise",
+  "metapod","butterfree","kakuna","beedrill","pidgeotto","pidgeot","raticate","arbok",
+  "raichu","sandslash","nidorina","nidoqueen","nidorino","nidoking","clefable","ninetales",
+  "wigglytuff","golbat","crobat","gloom","vileplume","bellossom","parasect","venomoth",
+  "dugtrio","persian","golduck","primeape","arcanine","poliwhirl","poliwrath","kadabra",
+  "alakazam","machoke","machamp","weepinbell","victreebel","tentacruel","graveler","golem",
+  "rapidash","slowbro","slowking","magneton","dodrio","dewgong","muk","cloyster","haunter",
+  "gengar","steelix","kingler","electrode","exeggutor","marowak","hypno","weezing","rhydon",
+  "rhyperior","kangaskhan","seadra","kingdra","seaking","starmie","mr. mime","jynx","electabuzz",
+  "magmar","gyarados","lapras","vaporeon","jolteon","flareon","espeon","umbreon","leafeon",
+  "glaceon","sylveon","omastar","kabutops","dragonair","dragonite","kirlia","gardevoir",
+  "gallade","metang","metagross","grovyle","sceptile","combusken","blaziken","marshtomp",
+  "swampert","charmeleon","floette","florges","brionne","primarina","dartrix","decidueye",
+  "torracat","incineroar","drizzile","inteleon","thwackey","rillaboom","raboot","cinderace",
+  "frogadier","greninja","quilladin","chesnaught","braixen","delphox","dewott","samurott",
+  "servine","serperior","pignite","emboar","drakloak","dragapult","kadabra","gabite","garchomp",
+  "vibrava","flygon","baltoy","claydol","duosion","reuniclus","klang","klinklang","pawniard",
+  "bisharp","fraxure","haxorus","comfey","dusclops","dusknoir","bibarel","baxcalibur","arctibax"];
+
+function isLikelyBasic(lname) {
+  // Evolutions are not basic.
+  if (EVOLUTION_NAMES.some(e => lname === e || lname.startsWith(e + " "))) return false;
+  // Most ex/V/VSTAR/VMAX/Tera that AREN'T evolutions are basic, as are plain names.
+  return true;
+}
+
+/**
+ * Full consistency report from a parsed list (or manual overrides).
+ * @param {object} opts {basics, engine} optional manual counts.
+ */
+function consistencyReport(parsed, opts = {}) {
+  const DECK = 60, HAND = 7;
+  const basics = Number.isFinite(opts.basics) ? opts.basics : parsed.basics;
+  // "engine" cards = anything that develops/digs: Supporters + search + draw items.
+  const engine = Number.isFinite(opts.engine) ? opts.engine
+    : (parsed.supporters + parsed.search + parsed.draw);
+
+  // Mulligan = NO basic in 7. P(at least 1 basic) then complement.
+  const pHasBasic = atLeast(DECK, Math.min(basics, DECK), HAND, 1);
+  const mulligan = (1 - pHasBasic) * 100;
+
+  // Brick estimate: legal hand (>=1 basic) AND zero engine cards.
+  // P(no engine in 7) = C(60-engine,7)/C(60,7); intersect with "has basic"
+  // (independent-ish approximation; good enough for a guidance number).
+  const pNoEngine = engine >= DECK ? 0 : nCr(DECK - engine, HAND) / nCr(DECK, HAND);
+  const brick = pHasBasic * pNoEngine * 100;
+
+  // A "good opener": has a basic AND at least one engine card.
+  const pHasEngine = atLeast(DECK, Math.min(engine, DECK), HAND, 1);
+  const good = pHasBasic * pHasEngine * 100;
+
+  // Chance of opening with a Supporter specifically (key for turn-1 setup).
+  const pSupporter = atLeast(DECK, Math.min(parsed.supporters, DECK), HAND, 1) * 100;
+
+  const rate = (v) => Math.round(v * 10) / 10;
+  return {
+    basics, engine,
+    supporters: parsed.supporters, search: parsed.search, draw: parsed.draw,
+    total: parsed.total,
+    mulligan: rate(mulligan),
+    brick: rate(brick),
+    good: rate(good),
+    supporterOpen: rate(pSupporter),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. SEED DATA (demo)                                                */
+/* ------------------------------------------------------------------ */
+function seed() {
+  const d = (name, daysAgo, list) => ({
+    id: uid(), name, created: new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10),
+    decklist: list || ""
+  });
+  const charizard = d("Charizard ex", 60,
+`Pokémon: 12
+3 Charmander OBF 26
+1 Charmeleon OBF 27
+3 Charizard ex OBF 125
+2 Pidgey MEW 16
+2 Pidgeot ex OBF 164
+1 Rotom V CRZ 45
+
+Trainer: 35
+4 Arven OBF 186
+3 Boss's Orders PAL 172
+4 Rare Candy SVI 191
+2 Iono PAL 185
+
+Energy: 13
+8 Fire Energy
+5 Basic Fire`);
+  const lostbox = d("Lost Box Comfey", 40,
+`Pokémon: 14
+4 Comfey LOR 79
+2 Sableye LOR 70
+1 Cramorant LOR 50
+2 Kyogre CEL 3
+1 Radiant Greninja ASR 46
+1 Mew CEL 11
+2 Manaphy BRS 41
+
+Trainer: 34
+4 Colress's Experiment LOR 155
+3 Iono PAL 185
+4 Battle VIP Pass FST 225
+4 Quick Ball FST 237
+4 Nest Ball SVI 181
+3 Super Rod PAL 188
+2 Switch SVI 194
+
+Energy: 12
+4 Basic Water Energy
+4 Basic Psychic Energy
+4 Basic Fighting Energy`);
+  const gardevoir = d("Gardevoir ex", 25,
+`Pokémon: 17
+4 Ralts ASR 60
+1 Kirlia CRZ 56
+3 Kirlia SIT 68
+3 Gardevoir ex SVI 86
+1 Gardevoir CRZ 69
+1 Zacian V CEL 16
+1 Cresselia LOR 74
+2 Manaphy BRS 41
+1 Radiant Greninja ASR 46
+
+Trainer: 28
+4 Arven OBF 186
+3 Iono PAL 185
+2 Boss's Orders PAL 172
+4 Battle VIP Pass FST 225
+4 Ultra Ball SVI 196
+2 Level Ball BST 129
+3 Rare Candy SVI 191
+
+Energy: 15
+11 Basic Psychic Energy
+4 Reversal Energy PAL 192`);
+  const lugia = d("Lugia VSTAR", 12,
+`Pokémon: 14
+4 Lugia V SIT 138
+3 Lugia VSTAR SIT 139
+4 Archeops SIT 147
+1 Lumineon V BRS 40
+1 Radiant Charizard CRZ 20
+1 Stoutland V LOR 137
+
+Trainer: 33
+4 Professor's Research SVI 189
+3 Iono PAL 185
+2 Boss's Orders PAL 172
+4 Capturing Aroma SIT 153
+4 Ultra Ball SVI 196
+3 Nest Ball SVI 181
+
+Energy: 13
+4 Double Turbo Energy BRS 151
+4 Jet Energy PAL 190
+5 Basic Water Energy`);
+  State.decks = [charizard, lostbox, gardevoir, lugia];
+
+  const opps = ["Gardevoir ex", "Mew VMAX", "Lost Box", "Miraidon ex", "Chien-Pao ex", "Charizard ex", "Snorlax Stall", "Giratina VSTAR", "Roaring Moon ex"];
+  const events = ["Local League", "Regional Championship", "Online Ladder", "City League", "Weekly Cup", ""];
+  const matches = [];
+  let day = 58;
+  // Generate a believable spread of matches across decks/formats
+  for (let i = 0; i < 46; i++) {
+    const deck = State.decks[Math.floor(Math.random() * Math.min(State.decks.length, i < 30 ? 3 : 4))];
+    const bo3 = Math.random() > 0.45;
+    const first = Math.random() > 0.5;
+    const online = Math.random() > 0.5;
+    const winRoll = Math.random() < (first ? 0.6 : 0.46);  // going first slightly favored
+    const drawRoll = !bo3 && Math.random() < 0.06;
+    let result, score = "";
+    if (drawRoll) result = "Draw";
+    else if (bo3) {
+      result = winRoll ? "Match Win" : "Match Loss";
+      score = winRoll ? (Math.random() > 0.5 ? "2-0" : "2-1") : (Math.random() > 0.5 ? "0-2" : "1-2");
+    } else result = winRoll ? "Win" : "Loss";
+    day -= Math.floor(Math.random() * 2) + 1;
+    // ~14% of games involve a brick; bricking correlates with losing.
+    const bricked = Math.random() < (isWinResult(result) ? 0.05 : 0.26);
+    const sampleNotes = [
+      "Opponent misplayed their Boss's Orders — punished it.",
+      "Prized a key piece, had to play around it all game.",
+      "Dead-drew for two turns but stabilized.",
+      "Tight prize race, won on the last turn.",
+      "Mulligan into a slow start.",
+      "Great opener, set up turn one.", ""
+    ];
+    matches.push({
+      id: uid(), deckId: deck.id,
+      date: new Date(Date.now() - day * 864e5).toISOString().slice(0, 10),
+      opponent: opps[Math.floor(Math.random() * opps.length)],
+      event: events[Math.floor(Math.random() * events.length)],
+      notes: "",
+      extraNotes: bricked ? "Bricked early — couldn't get an attacker online." : sampleNotes[Math.floor(Math.random() * sampleNotes.length)],
+      bricked,
+      format: bo3 ? "BO3" : "BO1",
+      position: first ? "First" : "Second",
+      type: online ? "Online" : "In Person",
+      result, score
+    });
+  }
+  matches.sort((a, b) => a.date.localeCompare(b.date));
+  State.matches = matches;
+  State.settings = { theme: "dark" };
+  save();
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. STATISTICS ENGINE  (pure derivations)                           */
+/* ------------------------------------------------------------------ */
+/** Aggregate W/L/D over an arbitrary list of matches. */
+function tally(list) {
+  let w = 0, l = 0, dr = 0;
+  for (const m of list) { if (isWin(m)) w++; else if (isLoss(m)) l++; else dr++; }
+  const decisive = w + l;
+  return { total: list.length, w, l, d: dr, wr: pct(w, decisive), record: `${w}-${l}-${dr}` };
+}
+const by = (list, fn) => list.filter(fn);
+
+/** Global dashboard statistics object. */
+function globalStats() {
+  const M = State.matches;
+  return {
+    all:    tally(M),
+    first:  tally(by(M, m => m.position === "First")),
+    second: tally(by(M, m => m.position === "Second")),
+    online: tally(by(M, m => m.type === "Online")),
+    inperson: tally(by(M, m => m.type === "In Person")),
+    bo1:    tally(by(M, m => m.format === "BO1")),
+    bo3:    tally(by(M, m => m.format === "BO3")),
+  };
+}
+
+/** Per-deck analytics for a single deck. */
+function deckStats(deckId) {
+  const M = by(State.matches, m => m.deckId === deckId);
+  const t = tally(M);
+  const bricked = M.filter(m => m.bricked).length;
+  return {
+    ...t,
+    online:   tally(by(M, m => m.type === "Online")),
+    inperson: tally(by(M, m => m.type === "In Person")),
+    first:    tally(by(M, m => m.position === "First")),
+    second:   tally(by(M, m => m.position === "Second")),
+    bo1:      tally(by(M, m => m.format === "BO1")),
+    bo3:      tally(by(M, m => m.format === "BO3")),
+    bricked,                                 // count of matches flagged as bricked
+    brickRate: pct(bricked, M.length),       // % of this deck's matches that bricked
+  };
+}
+
+/** All decks ranked by win % (decisive games), then volume. */
+function rankedDecks() {
+  return State.decks
+    .map(d => ({ deck: d, s: deckStats(d.id) }))
+    .sort((a, b) => (b.s.wr - a.s.wr) || (b.s.total - a.s.total));
+}
+
+const deckName = (id) => State.decks.find(d => d.id === id)?.name || "— deleted deck —";
+
+/* ------------------------------------------------------------------ */
+/* 4. SMALL UI HELPERS (toast, modal, nav)                            */
+/* ------------------------------------------------------------------ */
+function toast(msg, kind = "info") {
+  const el = document.createElement("div");
+  el.className = `toast ${kind}`;
+  el.textContent = msg;
+  $("#toastWrap").appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; el.style.transform = "translateX(30px)"; el.style.transition = "all .3s"; }, 2600);
+  setTimeout(() => el.remove(), 2950);
+}
+
+function openModal(html) {
+  $("#modalBox").innerHTML = html;
+  $("#modalScrim").classList.add("open");
+}
+function closeModal() { $("#modalScrim").classList.remove("open"); $("#modalBox").innerHTML = ""; }
+$("#modalScrim").addEventListener("click", e => { if (e.target.id === "modalScrim") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+const PAGE_META = {
+  dashboard: ["Dashboard", "Your competitive overview at a glance"],
+  decks:     ["Decks", "Manage your archetypes and decklists"],
+  logger:    ["Log a Match", "Record a new game result"],
+  history:   ["Match History", "Search, filter, and edit past matches"],
+  settings:  ["Settings", "Backup, import, export, and reset your data"],
+};
+let currentPage = "dashboard";
+
+function navigate(page) {
+  if (currentPage === "history" && page !== "history") selected.clear();
+  currentPage = page;
+  $$(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.page === page));
+  $$(".page").forEach(p => p.classList.remove("active"));
+  $(`#page-${page}`).classList.add("active");
+  const [t, s] = PAGE_META[page];
+  $("#pageTitle").innerHTML = `<h1>${t}</h1><p>${s}</p>`;
+  renderPage(page);
+  closeMobileNav();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function renderPage(page) {
+  ({ dashboard: renderDashboard, decks: renderDecks, logger: renderLogger,
+     history: renderHistory, settings: renderSettings }[page] || (() => {}))();
+}
+/** Re-render the active page + sidebar counters after any data change. */
+function refreshAll() {
+  $("#navDeckCount").textContent  = State.decks.length;
+  $("#navMatchCount").textContent = State.matches.length;
+  renderPage(currentPage);
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. DASHBOARD RENDER + CHARTS                                       */
+/* ------------------------------------------------------------------ */
+let charts = {};
+function destroyCharts() { Object.values(charts).forEach(c => { try { c.destroy(); } catch {} }); charts = {}; }
+
+function statCard(label, value, sub, cls = "") {
+  return `<div class="stat-card glass ${cls}">
+    <div class="label">${label}</div>
+    <div class="value">${value}</div>
+    ${sub ? `<div class="sub">${sub}</div>` : ""}
+  </div>`;
+}
+
+function renderDashboard() {
+  const g = globalStats();
+  const el = $("#page-dashboard");
+
+  if (State.matches.length === 0) {
+    el.innerHTML = emptyState("🎴", "No matches yet", "Log your first match to unlock your analytics dashboard.",
+      `<button class="btn btn-primary" onclick="navigate('logger')">Log a Match</button>`);
+    destroyCharts();
+    return;
+  }
+
+  el.innerHTML = `
+    <!-- Global stat tiles -->
+    <div class="grid stat-grid">
+      ${statCard("Total Matches", g.all.total, `${State.decks.length} decks tracked`, "accent")}
+      ${statCard("Wins", g.all.w, "decisive victories", "win")}
+      ${statCard("Losses", g.all.l, "", "loss")}
+      ${statCard("Draws", g.all.d, "")}
+      ${statCard("Overall Win %", g.all.wr + "%", g.all.record + " (W-L-D)", "gold")}
+      ${statCard("Active Decks", State.decks.length, "in rotation", "accent")}
+    </div>
+
+    <!-- Split metrics -->
+    <div class="section-head"><h2><span class="dot"></span> Performance Splits</h2></div>
+    <div class="grid stat-grid">
+      ${splitCard("Going First", g.first)}
+      ${splitCard("Going Second", g.second)}
+      ${splitCard("Online", g.online)}
+      ${splitCard("In Person", g.inperson)}
+      ${splitCard("Best of 1", g.bo1)}
+      ${splitCard("Best of 3", g.bo3)}
+    </div>
+
+    <!-- Charts -->
+    <div class="section-head"><h2><span class="dot"></span> Visual Analytics</h2></div>
+    <div class="grid chart-grid">
+      <div class="chart-card glass"><h3>📈 Win / Loss Trend</h3><div class="chart-wrap"><canvas id="cTrend"></canvas></div></div>
+      <div class="chart-card glass"><h3>🏆 Win % by Deck</h3><div class="chart-wrap"><canvas id="cDeck"></canvas></div></div>
+      <div class="chart-card glass"><h3>🌐 Online vs In-Person</h3><div class="chart-wrap"><canvas id="cType"></canvas></div></div>
+      <div class="chart-card glass"><h3>🎲 First vs Second</h3><div class="chart-wrap"><canvas id="cPos"></canvas></div></div>
+    </div>
+
+    <!-- Deck rankings -->
+    <div class="section-head"><h2><span class="dot"></span> Deck Rankings</h2></div>
+    <div class="glass" style="padding:8px 4px">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Deck</th><th>Record</th><th>Win %</th><th>Online</th><th>In-Person</th><th>1st</th><th>2nd</th></tr></thead>
+          <tbody>${rankedDecks().map((r, i) => `
+            <tr>
+              <td><span class="pill ${i===0?'win':'muted'}">${i+1}</span></td>
+              <td><div class="cell-deck">${pokeSprite(r.deck.name,24)}<b>${esc(r.deck.name)}</b></div></td>
+              <td>${r.s.record}</td>
+              <td><b style="color:${wrColor(r.s.wr)}">${r.s.wr}%</b></td>
+              <td>${r.s.online.wr}%</td>
+              <td>${r.s.inperson.wr}%</td>
+              <td>${r.s.first.wr}%</td>
+              <td>${r.s.second.wr}%</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  buildCharts(g);
+}
+
+function splitCard(label, t) {
+  const ring = `<div class="ring" style="--p:${t.wr};--c:${wrColor(t.wr)}"><span>${t.wr}%</span></div>`;
+  return `<div class="stat-card glass" style="display:flex;align-items:center;gap:14px">
+    <div style="flex:1">
+      <div class="label">${label}</div>
+      <div class="value" style="font-size:24px">${t.total}<span style="font-size:13px;color:var(--txt-2);font-weight:400"> games</span></div>
+      <div class="sub">${t.record}</div>
+    </div>${ring}
+  </div>`;
+}
+function wrColor(wr) { return wr >= 55 ? "#2fd07a" : wr >= 45 ? "#ffb547" : "#ff5d6c"; }
+
+/** Build all four dashboard charts; theme-aware colors. */
+function buildCharts(g) {
+  destroyCharts();
+  const css = getComputedStyle(document.body);
+  const txt = css.getPropertyValue("--txt-1").trim();
+  const grid = css.getPropertyValue("--stroke").trim();
+  Chart.defaults.color = txt;
+  Chart.defaults.font.family = "Sora, sans-serif";
+
+  // --- Trend: cumulative win % over time ---
+  const sorted = [...State.matches].sort((a, b) => a.date.localeCompare(b.date));
+  let cw = 0, cd = 0;
+  const labels = [], data = [];
+  sorted.forEach((m, i) => {
+    if (isWin(m)) cw++; if (isWin(m) || isLoss(m)) cd++;
+    labels.push(`#${i + 1}`);
+    data.push(pct(cw, cd));
+  });
+  charts.trend = new Chart($("#cTrend"), {
+    type: "line",
+    data: { labels, datasets: [{ label: "Cumulative Win %", data, borderColor: "#5b8cff",
+      backgroundColor: "rgba(91,140,255,.18)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { min: 0, max: 100, grid: { color: grid }, ticks: { callback: v => v + "%" } },
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } } }
+  });
+
+  // --- Deck win % bar ---
+  const rd = rankedDecks().filter(r => r.s.total > 0);
+  charts.deck = new Chart($("#cDeck"), {
+    type: "bar",
+    data: { labels: rd.map(r => r.deck.name), datasets: [{ label: "Win %", data: rd.map(r => r.s.wr),
+      backgroundColor: rd.map(r => wrColor(r.s.wr)), borderRadius: 8, maxBarThickness: 46 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { min: 0, max: 100, grid: { color: grid }, ticks: { callback: v => v + "%" } },
+                x: { grid: { display: false } } } }
+  });
+
+  const donut = (id, labels, vals, colors) => new Chart($(id), {
+    type: "doughnut",
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "62%",
+      plugins: { legend: { position: "bottom", labels: { padding: 14, usePointStyle: true } } } }
+  });
+  charts.type = donut("#cType", ["Online", "In Person"],
+    [g.online.total, g.inperson.total], ["#5b8cff", "#ffcb05"]);
+  charts.pos = donut("#cPos", ["Went First", "Went Second"],
+    [g.first.total, g.second.total], ["#2fd07a", "#7b5bff"]);
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. DECKS PAGE                                                      */
+/* ------------------------------------------------------------------ */
+function renderDecks() {
+  const el = $("#page-decks");
+  const ranked = rankedDecks();
+  const head = `<div class="section-head" style="margin-top:0">
+    <h2><span class="dot"></span> Your Decks <span class="badge-count">${State.decks.length}</span></h2>
+    <button class="btn btn-gold" onclick="openDeckModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> New Deck</button>
+  </div>`;
+
+  if (State.decks.length === 0) {
+    el.innerHTML = head + emptyState("🃏", "No decks yet", "Create your first deck and paste a decklist to start tracking.",
+      `<button class="btn btn-primary" onclick="openDeckModal()">Create Deck</button>`);
+    return;
+  }
+
+  el.innerHTML = head + `<div class="grid deck-grid">${ranked.map((r, i) => {
+    const s = r.s, d = r.deck;
+    const rep = consistencyReport(parseDecklist(d.decklist), d.overrides || {});
+    const hasList = rep.total > 0;
+    return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
+      ${i === 0 && s.total > 0 ? `<div class="rank-badge">★ TOP DECK</div>` : ""}
+      <div class="top">
+        <div class="deck-title-row">
+          ${pokeSprite(d.name, 42)}
+          <div><h3>${esc(d.name)}</h3><div class="created">Created ${fmtDate(d.created)}</div></div>
+        </div>
+        <div class="wr-badge" style="color:${wrColor(s.wr)}">${s.wr}%</div>
+      </div>
+      <div class="deck-rank-bar"><i style="width:${s.wr}%"></i></div>
+      <div class="deck-stats">
+        <div class="deck-stat"><div class="k">Matches</div><div class="v">${s.total}</div></div>
+        <div class="deck-stat"><div class="k">Record</div><div class="v">${s.record}</div></div>
+        <div class="deck-stat"><div class="k">BO1</div><div class="v">${s.bo1.record} · ${s.bo1.wr}%</div></div>
+        <div class="deck-stat"><div class="k">BO3</div><div class="v">${s.bo3.record} · ${s.bo3.wr}%</div></div>
+        <div class="deck-stat"><div class="k">Online</div><div class="v">${s.online.record} · ${s.online.wr}%</div></div>
+        <div class="deck-stat"><div class="k">In Person</div><div class="v">${s.inperson.record} · ${s.inperson.wr}%</div></div>
+      </div>
+
+      <!-- consistency strip: theoretical (from list) + actual (from logged matches) -->
+      <div class="consistency-strip">
+        ${hasList ? `
+          <div class="cs-item" title="Theoretical mulligan chance from your decklist">
+            <span class="cs-k">Mulligan</span><b style="color:${rep.mulligan<=9?'var(--win)':rep.mulligan<=16?'var(--draw)':'var(--loss)'}">${rep.mulligan}%</b></div>
+          <div class="cs-item" title="Estimated chance of a legal-but-dead hand">
+            <span class="cs-k">Brick est.</span><b style="color:${rep.brick<=8?'var(--win)':rep.brick<=15?'var(--draw)':'var(--loss)'}">${rep.brick}%</b></div>
+        ` : `<div class="cs-item" style="flex:1;color:var(--txt-2);font-size:11.5px">No decklist — add one for brick math</div>`}
+        <div class="cs-item" title="Actual bricks you logged in matches">
+          <span class="cs-k">Bricked (real)</span><b style="color:${s.brickRate<=10?'var(--win)':s.brickRate<=20?'var(--draw)':'var(--loss)'}">${s.brickRate}% · ${s.bricked}/${s.total}</b></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="openDeckModal('${d.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="viewDecklist('${d.id}')">Decklist</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDeck('${d.id}')" style="margin-left:auto">Delete</button>
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/** Open the create/edit deck modal. Pass id to edit. */
+function openDeckModal(id) {
+  const d = id ? State.decks.find(x => x.id === id) : null;
+  openModal(`
+    <h2>${d ? "Edit Deck" : "New Deck"}</h2>
+    <p class="sub">Paste a decklist (PTCG Live / Limitless format). The consistency panel updates live as you type.</p>
+    <div class="field"><label>Deck Name</label>
+      <input class="input" id="dkName" placeholder="e.g. Charizard ex" value="${d ? esc(d.name) : ""}"></div>
+    <div class="field" style="margin-top:14px"><label>Decklist <span class="opt">(optional)</span></label>
+      <div class="dz" id="dkDrop">⬆ Drop a .txt file here or click to upload</div>
+      <input type="file" id="dkFile" accept=".txt,text/plain" style="display:none">
+      <textarea class="textarea mono" id="dkList" placeholder="Pokémon: 12&#10;3 Charmander OBF 26&#10;...&#10;&#10;Trainer: 35&#10;...&#10;&#10;Energy: 13&#10;..." style="margin-top:10px;min-height:150px">${d ? esc(d.decklist) : ""}</textarea>
+    </div>
+
+    <!-- LIVE CONSISTENCY / BRICK PANEL -->
+    <div class="consistency glass" id="dkConsistency" style="margin-top:16px;padding:16px"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDeck('${d ? d.id : ""}')">${d ? "Save Changes" : "Create Deck"}</button>
+    </div>`);
+
+  // wire up file upload + drag/drop
+  const drop = $("#dkDrop"), file = $("#dkFile"), ta = $("#dkList");
+  drop.onclick = () => file.click();
+  file.onchange = () => { if (file.files[0]) readTxt(file.files[0], ta); };
+  ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) readTxt(f, ta); });
+
+  // live recompute as the list changes (with manual overrides persisted in-modal)
+  ta.addEventListener("input", () => renderConsistency());
+  renderConsistency(d);
+  setTimeout(() => $("#dkName").focus(), 50);
+}
+
+/** Cache of manual overrides while the deck modal is open. */
+let _ovr = { basics: null, engine: null };
+
+/** Render the live consistency panel inside the deck modal. */
+function renderConsistency(deckForInit) {
+  const box = $("#dkConsistency"); if (!box) return;
+  const text = $("#dkList").value;
+  const parsed = parseDecklist(text);
+
+  // initialise overrides from saved deck once, else clear when list empty
+  if (deckForInit && deckForInit.overrides) _ovr = { ...deckForInit.overrides };
+
+  if (!parsed.parsed) {
+    _ovr = { basics: null, engine: null };
+    box.innerHTML = `<div style="color:var(--txt-2);font-size:13px;display:flex;gap:9px;align-items:center">
+      ${pokeSprite("", 26)} Paste a decklist above to see mulligan &amp; brick probabilities.</div>`;
+    return;
+  }
+
+  const rep = consistencyReport(parsed, {
+    basics: _ovr.basics ?? undefined,
+    engine: _ovr.engine ?? undefined,
+  });
+
+  const meter = (label, val, kind, hint) => {
+    const col = kind === "bad" ? "var(--loss)" : kind === "ok" ? "var(--draw)" : "var(--win)";
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+        <span style="color:var(--txt-1);font-weight:600">${label}</span>
+        <b style="color:${col};font-family:'Chakra Petch'">${val}%</b></div>
+      <div class="deck-rank-bar"><i style="width:${Math.min(val,100)}%;background:${col}"></i></div>
+      <div style="font-size:11px;color:var(--txt-2);margin-top:4px">${hint}</div>
+    </div>`;
+  };
+
+  const mulKind = rep.mulligan <= 9 ? "good" : rep.mulligan <= 16 ? "ok" : "bad";
+  const brickKind = rep.brick <= 8 ? "good" : rep.brick <= 15 ? "ok" : "bad";
+  const goodKind = rep.good >= 75 ? "good" : rep.good >= 60 ? "ok" : "bad";
+
+  box.innerHTML = `
+    <h3 style="font-size:14px;margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      🧪 Consistency Analysis ${parsed.warning ? `<span class="pill draw" style="font-size:10px">${parsed.warning}</span>` : `<span class="pill muted" style="font-size:10px">${parsed.total} cards</span>`}</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px;margin:12px 0">
+      ${miniStat("Basics", rep.basics, "🟢")}
+      ${miniStat("Supporters", rep.supporters, "👤")}
+      ${miniStat("Ball/Search", rep.search, "🔍")}
+      ${miniStat("Draw items", rep.draw, "🎴")}
+      ${miniStat("Engine", rep.engine, "⚙️")}
+    </div>
+    ${meter("Mulligan chance (no Basic in opener)", rep.mulligan, mulKind,
+      mulKind==="good"?"Healthy — low mulligan risk.":mulKind==="ok"?"A bit high; consider more Basics.":"Too high — add Basic Pokémon.")}
+    ${meter("Brick estimate (legal but no engine)", rep.brick, brickKind,
+      "Hand has a Basic but no Supporter / search / draw to develop.")}
+    ${meter("Good opener (Basic + an engine card)", rep.good, goodKind,
+      "Chance your 7 can actually start doing something.")}
+    <div style="font-size:11.5px;color:var(--txt-2);margin-top:4px">Opens with a Supporter ~<b>${rep.supporterOpen}%</b> of games.</div>
+
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600">Adjust counts manually</summary>
+      <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <div class="field" style="flex:1;min-width:120px"><label style="font-size:11.5px">Basic Pokémon</label>
+          <input class="input" type="number" min="0" max="60" id="ovrBasics" value="${rep.basics}"></div>
+        <div class="field" style="flex:1;min-width:120px"><label style="font-size:11.5px">Engine cards</label>
+          <input class="input" type="number" min="0" max="60" id="ovrEngine" value="${rep.engine}"></div>
+      </div>
+      <div style="font-size:11px;color:var(--txt-2);margin-top:6px">Auto-detected from the list — override if the parser miscounted (e.g. Stage 1/2 lines or unusual card names).</div>
+    </details>`;
+
+  // wire override inputs to recompute (keeping focus-friendly)
+  const ob = $("#ovrBasics"), oe = $("#ovrEngine");
+  if (ob) ob.addEventListener("input", () => { _ovr.basics = parseInt(ob.value) || 0; renderConsistency(); });
+  if (oe) oe.addEventListener("input", () => { _ovr.engine = parseInt(oe.value) || 0; renderConsistency(); });
+}
+function miniStat(label, val, ico) {
+  return `<div style="background:var(--bg-2);border:1px solid var(--stroke);border-radius:10px;padding:8px 6px;text-align:center">
+    <div style="font-size:15px">${ico}</div>
+    <div style="font-family:'Chakra Petch';font-weight:700;font-size:17px;margin-top:2px">${val}</div>
+    <div style="font-size:9.5px;color:var(--txt-2);text-transform:uppercase;letter-spacing:.3px">${label}</div>
+  </div>`;
+}
+function readTxt(file, ta) {
+  if (!/\.txt$|text\/plain/.test(file.name + file.type)) { toast("Please upload a .txt file.", "error"); return; }
+  const r = new FileReader();
+  r.onload = () => { ta.value = r.result; renderConsistency(); toast("Decklist loaded from file.", "success"); };
+  r.onerror = () => toast("Could not read file.", "error");
+  r.readAsText(file);
+}
+function saveDeck(id) {
+  const name = $("#dkName").value.trim();
+  const list = $("#dkList").value;
+  if (!name) { toast("Deck name is required.", "error"); return; }
+  // persist any manual overrides the user set in the consistency panel
+  const overrides = (_ovr.basics != null || _ovr.engine != null) ? { ..._ovr } : null;
+  if (id) {
+    const d = State.decks.find(x => x.id === id);
+    d.name = name; d.decklist = list; d.overrides = overrides;
+    toast("Deck updated.", "success");
+  } else {
+    State.decks.push({ id: uid(), name, created: todayISO(), decklist: list, overrides });
+    toast("Deck created.", "success");
+  }
+  _ovr = { basics: null, engine: null };
+  save(); closeModal(); refreshAll();
+}
+function deleteDeck(id) {
+  const n = by(State.matches, m => m.deckId === id).length;
+  confirmModal("Delete Deck?",
+    `This deletes "<b>${esc(deckName(id))}</b>".${n ? ` <b>${n}</b> linked match(es) will keep their record but show as "deleted deck".` : ""} This cannot be undone.`,
+    () => { State.decks = State.decks.filter(d => d.id !== id); save(); refreshAll(); toast("Deck deleted.", "info"); });
+}
+function viewDecklist(id) {
+  const d = State.decks.find(x => x.id === id);
+  const parsed = parseDecklist(d.decklist);
+  openModal(`<h2>${esc(d.name)}</h2><p class="sub">Created ${fmtDate(d.created)} · ${parsed.parsed ? parsed.total + " cards" : "no decklist"}</p>
+    <div id="dlTabs" style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-ghost btn-sm dl-tab active" onclick="dlTab('text')">📄 Text</button>
+      <button class="btn btn-ghost btn-sm dl-tab" onclick="dlTab('image')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>🖼️ Image</button>
+    </div>
+    <div id="dlText">
+      <pre class="mono" style="background:var(--bg-2);border:1px solid var(--stroke);border-radius:12px;padding:16px;max-height:46vh;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6">${d.decklist ? esc(d.decklist) : "— no decklist saved —"}</pre>
+    </div>
+    <div id="dlImage" style="display:none">
+      <div style="text-align:center;color:var(--txt-2);font-size:13px;padding:30px" id="dlCanvasHolder">Rendering deck image…</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-ghost" onclick="copyDecklist('${d.id}')">Copy text</button>
+      <button class="btn btn-gold" id="dlDownload" onclick="downloadDeckImage('${d.id}')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>⬇ Save as JPG</button>
+      <button class="btn btn-primary" onclick="openDeckModal('${d.id}')">Edit</button>
+    </div>`);
+}
+/** Switch between text and image tabs in the decklist modal. */
+function dlTab(which) {
+  $$(".dl-tab").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  $("#dlText").style.display = which === "text" ? "" : "none";
+  $("#dlImage").style.display = which === "image" ? "" : "none";
+  if (which === "image") {
+    const id = $("#dlDownload").getAttribute("onclick").match(/'([^']+)'/)[1];
+    renderDeckImage(id, "#dlCanvasHolder");
+  }
+}
+function copyDecklist(id) {
+  const d = State.decks.find(x => x.id === id);
+  navigator.clipboard?.writeText(d.decklist || "").then(
+    () => toast("Decklist copied.", "success"),
+    () => toast("Copy failed.", "error"));
+}
+
+/* --- Deck image renderer (Limitless-style card grid) ------------------ */
+/**
+ * Draw a parsed decklist into a canvas as a tidy, sprite-illustrated sheet,
+ * grouped by Pokémon / Trainer / Energy, similar to Limitless's deck view.
+ * Sprites load asynchronously; we redraw once images settle.
+ * @returns {Promise<HTMLCanvasElement>}
+ */
+async function buildDeckCanvas(deck) {
+  const parsed = parseDecklist(deck.decklist);
+  const W = 900, pad = 36, colW = (W - pad * 2);
+  const lineH = 40, headH = 46, gap = 18;
+
+  // Pre-load Pokémon sprites for the Pokémon section (others get an icon glyph).
+  const spriteCache = {};
+  await Promise.all(parsed.sections.pokemon.map(c => new Promise(res => {
+    const url = spriteURL(c.name);
+    if (!url.startsWith("http")) { res(); return; }
+    const img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = () => { spriteCache[c.name] = img; res(); };
+    img.onerror = () => res();
+    img.src = url;
+  })));
+
+  // compute height
+  const sect = [["Pokémon", parsed.sections.pokemon, "#5b8cff"],
+                ["Trainer", parsed.sections.trainer, "#ffcb05"],
+                ["Energy",  parsed.sections.energy,  "#2fd07a"]].filter(s => s[1].length);
+  let H = pad * 2 + 70;  // title area
+  sect.forEach(s => { H += headH + s[1].length * lineH + gap; });
+  H += 40; // footer
+
+  const c = document.createElement("canvas");
+  const scale = 2;                       // hi-dpi for crisp JPG
+  c.width = W * scale; c.height = H * scale;
+  const x = c.getContext("2d"); x.scale(scale, scale);
+
+  // background
+  const bg = x.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#0d1424"); bg.addColorStop(1, "#0a0e1a");
+  x.fillStyle = bg; x.fillRect(0, 0, W, H);
+
+  // title
+  x.fillStyle = "#eef3ff";
+  x.font = "700 30px 'Chakra Petch', sans-serif";
+  x.fillText(deck.name, pad, pad + 30);
+  x.fillStyle = "#6b7896";
+  x.font = "400 15px Sora, sans-serif";
+  x.fillText(`${parsed.total} cards   •   ${parsed.basics} Basics   •   created ${fmtDate(deck.created)}`, pad, pad + 54);
+
+  let y = pad + 84;
+  for (const [name, cards, color] of sect) {
+    const count = cards.reduce((a, b) => a + b.count, 0);
+    // section header
+    x.fillStyle = color;
+    x.fillRect(pad, y, 5, 26);
+    x.fillStyle = "#eef3ff";
+    x.font = "700 19px 'Chakra Petch', sans-serif";
+    x.fillText(`${name}`, pad + 14, y + 20);
+    x.fillStyle = color;
+    x.font = "700 16px 'Chakra Petch', sans-serif";
+    x.fillText(`${count}`, pad + 14 + x.measureText(name).width + 14, y + 20);
+    y += headH;
+
+    for (const card of cards) {
+      // row background
+      x.fillStyle = "rgba(255,255,255,0.03)";
+      roundRect(x, pad, y, colW, lineH - 6, 8); x.fill();
+      // count badge
+      x.fillStyle = color;
+      x.font = "700 18px 'Chakra Petch', sans-serif";
+      x.fillText(`${card.count}`, pad + 12, y + 23);
+      // sprite (pokemon only)
+      const sp = spriteCache[card.name];
+      if (sp) {
+        try { x.drawImage(sp, pad + 38, y + 1, 30, 30); } catch {}
+      }
+      // name
+      x.fillStyle = "#dbe4f7";
+      x.font = "500 16px Sora, sans-serif";
+      x.fillText(card.name, pad + (sp ? 76 : 44), y + 22);
+      y += lineH;
+    }
+    y += gap;
+  }
+
+  // footer
+  x.fillStyle = "#46527a";
+  x.font = "500 13px Sora, sans-serif";
+  x.fillText("Generated with PokéTracker", pad, H - 20);
+  // poké-ball mark
+  x.beginPath(); x.arc(W - pad - 8, H - 24, 9, 0, Math.PI * 2);
+  x.fillStyle = "#fff"; x.fill();
+  x.beginPath(); x.arc(W - pad - 8, H - 24, 9, Math.PI, 0);
+  x.fillStyle = "#ee1c25"; x.fill();
+  x.strokeStyle = "#11151f"; x.lineWidth = 1.6;
+  x.beginPath(); x.moveTo(W - pad - 17, H - 24); x.lineTo(W - pad + 1, H - 24); x.stroke();
+  x.beginPath(); x.arc(W - pad - 8, H - 24, 3, 0, Math.PI * 2); x.fillStyle = "#fff"; x.fill(); x.stroke();
+
+  return c;
+}
+/** Rounded-rect path helper for canvas. */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+/** Render the deck image into the modal preview area. */
+async function renderDeckImage(id, holderSel) {
+  const deck = State.decks.find(d => d.id === id);
+  const holder = $(holderSel);
+  holder.innerHTML = "Rendering deck image…";
+  try {
+    const canvas = await buildDeckCanvas(deck);
+    canvas.style.cssText = "width:100%;max-width:100%;border-radius:12px;border:1px solid var(--glass-border);box-shadow:var(--shadow)";
+    holder.innerHTML = "";
+    holder.appendChild(canvas);
+    holder._canvas = canvas;
+  } catch (err) {
+    console.error(err);
+    holder.innerHTML = "<span style='color:var(--loss)'>Could not render image.</span>";
+  }
+}
+/** Build the image (if needed) and trigger a JPG download. */
+async function downloadDeckImage(id) {
+  const deck = State.decks.find(d => d.id === id);
+  try {
+    toast("Building image…", "info");
+    const canvas = await buildDeckCanvas(deck);
+    canvas.toBlob(blob => {
+      if (!blob) { toast("Export failed.", "error"); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${deck.name.replace(/[^\w]+/g, "-").toLowerCase()}-decklist.jpg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast("Deck image saved as JPG.", "success");
+    }, "image/jpeg", 0.92);
+  } catch (err) { console.error(err); toast("Export failed.", "error"); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. MATCH LOGGER                                                    */
+/* ------------------------------------------------------------------ */
+/** Render the logger form. Pass match id to edit an existing one. */
+function renderLogger(editId) {
+  const el = $("#page-logger");
+  const m = editId ? State.matches.find(x => x.id === editId) : null;
+
+  if (State.decks.length === 0) {
+    el.innerHTML = emptyState("🃏", "Create a deck first", "You need at least one deck before logging matches.",
+      `<button class="btn btn-primary" onclick="navigate('decks')">Go to Decks</button>`);
+    return;
+  }
+
+  const opts = State.decks.map(d => `<option value="${d.id}" ${m && m.deckId === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("");
+  const sel = (v, cur) => v === cur ? "checked" : "";
+  const fmt = m ? m.format : "BO3";
+
+  el.innerHTML = `<div class="glass" style="padding:24px;max-width:780px">
+    ${m ? `<div class="pill muted" style="margin-bottom:14px">✏ Editing match</div>` : ""}
+    <div class="form-grid">
+      <div class="field"><label>Deck Used</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <img class="poke-sprite" id="mDeckSprite" width="38" height="38" alt="">
+          <select class="select" id="mDeck" onchange="updateDeckSprite()" style="flex:1">${opts}</select>
+        </div></div>
+      <div class="field"><label>Date</label>
+        <input class="input" type="date" id="mDate" value="${m ? m.date : todayISO()}"></div>
+      <div class="field"><label>Opponent Deck</label>
+        <input class="input" id="mOpp" placeholder="e.g. Gardevoir ex" value="${m ? esc(m.opponent) : ""}"></div>
+      <div class="field"><label>Event <span class="opt">(optional)</span></label>
+        <input class="input" id="mEvent" placeholder="e.g. Regional Championship" value="${m ? esc(m.event) : ""}"></div>
+    </div>
+
+    <div class="form-grid" style="margin-top:18px">
+      <div class="field"><label>Format</label>
+        <div class="seg" id="mFormat">
+          <label><input type="radio" name="fmt" value="BO1" ${sel("BO1", fmt)} onchange="syncResultOptions()"><span>Best of 1</span></label>
+          <label><input type="radio" name="fmt" value="BO3" ${sel("BO3", fmt)} onchange="syncResultOptions()"><span>Best of 3</span></label>
+        </div></div>
+      <div class="field"><label>Play Position</label>
+        <div class="seg">
+          <label><input type="radio" name="pos" value="First" ${m ? sel("First", m.position) : "checked"}><span>Went First</span></label>
+          <label><input type="radio" name="pos" value="Second" ${m ? sel("Second", m.position) : ""}><span>Went Second</span></label>
+        </div></div>
+      <div class="field"><label>Match Type</label>
+        <div class="seg">
+          <label><input type="radio" name="typ" value="Online" ${m ? sel("Online", m.type) : "checked"}><span>Online</span></label>
+          <label><input type="radio" name="typ" value="In Person" ${m ? sel("In Person", m.type) : ""}><span>In Person</span></label>
+        </div></div>
+      <div class="field"><label>Result</label>
+        <div class="seg win" id="mResult"></div></div>
+    </div>
+
+    <div class="field" id="scoreField" style="margin-top:18px;max-width:340px">
+      <label>Game Score <span class="opt">(optional, BO3)</span></label>
+      <select class="select" id="mScore">
+        <option value="">— not recorded —</option>
+        <option value="2-0">2-0</option><option value="2-1">2-1</option>
+        <option value="1-2">1-2</option><option value="0-2">0-2</option>
+      </select>
+    </div>
+
+    <!-- Did the deck brick? -->
+    <div class="field" style="margin-top:18px;max-width:420px">
+      <label>Did your deck brick? <span class="opt">(dead / unplayable opening)</span></label>
+      <div class="seg" id="mBrick">
+        <label><input type="radio" name="brick" value="no" ${m && m.bricked ? "" : "checked"}><span>👍 No brick</span></label>
+        <label><input type="radio" name="brick" value="yes" ${m && m.bricked ? "checked" : ""}><span>🧱 Bricked</span></label>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:18px"><label>Notes <span class="opt">(optional)</span></label>
+      <textarea class="textarea" id="mNotes" placeholder="Key plays, mulligans, prize trades, lessons learned...">${m ? esc(m.notes) : ""}</textarea></div>
+
+    <div class="field" style="margin-top:14px"><label>Extra Match Info <span class="opt">(matchup notes, tech cards, sideboard plan, things to remember)</span></label>
+      <textarea class="textarea" id="mExtra" placeholder="e.g. Their Gardevoir runs 2 Boss — play around it. Bench Manaphy early. Side in extra Switch vs control.">${m ? esc(m.extraNotes || "") : ""}</textarea></div>
+
+    <div class="modal-actions" style="justify-content:flex-start;margin-top:22px">
+      <button class="btn btn-primary" onclick="saveMatch('${m ? m.id : ""}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg> ${m ? "Save Changes" : "Save Match"}</button>
+      ${m ? `<button class="btn btn-ghost" onclick="navigate('history')">Cancel</button>` : `<button class="btn btn-ghost" onclick="renderLogger()">Clear</button>`}
+    </div>
+  </div>`;
+
+  syncResultOptions(m ? m.result : null, m ? m.score : "");
+  updateDeckSprite();
+}
+
+/** Refresh the little sprite shown beside the deck dropdown in the logger. */
+function updateDeckSprite() {
+  const img = $("#mDeckSprite"); if (!img) return;
+  const name = State.decks.find(d => d.id === $("#mDeck").value)?.name || "";
+  img.src = spriteURL(name);
+  img.onerror = () => { img.onerror = null; img.src = POKEBALL_SVG; };
+}
+
+/** Swap result options between BO1 (Win/Loss/Draw) and BO3 (Match Win/Loss); toggle score field. */
+function syncResultOptions(presetResult, presetScore) {
+  const fmt = $('input[name="fmt"]:checked')?.value || "BO3";
+  const box = $("#mResult");
+  const opts = fmt === "BO1"
+    ? [["Win", "Win"], ["Loss", "Loss"], ["Draw", "Draw"]]
+    : [["Match Win", "Match Win"], ["Match Loss", "Match Loss"]];
+  box.innerHTML = opts.map(([v, lab], i) =>
+    `<label><input type="radio" name="res" value="${v}" ${presetResult === v || (!presetResult && i === 0) ? "checked" : ""}><span>${lab}</span></label>`).join("");
+  const sf = $("#scoreField");
+  sf.style.display = fmt === "BO3" ? "" : "none";
+  if (presetScore !== undefined && $("#mScore")) $("#mScore").value = presetScore || "";
+}
+
+function saveMatch(id) {
+  const deckId = $("#mDeck").value;
+  const date = $("#mDate").value;
+  const result = $('input[name="res"]:checked')?.value;
+  if (!deckId) { toast("Select a deck.", "error"); return; }
+  if (!date) { toast("Pick a date.", "error"); return; }
+  if (!result) { toast("Select a result.", "error"); return; }
+  const format = $('input[name="fmt"]:checked').value;
+  const obj = {
+    deckId, date,
+    opponent: $("#mOpp").value.trim(),
+    event: $("#mEvent").value.trim(),
+    notes: $("#mNotes").value.trim(),
+    extraNotes: $("#mExtra").value.trim(),
+    bricked: $('input[name="brick"]:checked')?.value === "yes",
+    format,
+    position: $('input[name="pos"]:checked').value,
+    type: $('input[name="typ"]:checked').value,
+    result,
+    score: format === "BO3" ? ($("#mScore").value || "") : ""
+  };
+  if (id) {
+    Object.assign(State.matches.find(x => x.id === id), obj);
+    toast("Match updated.", "success"); save(); refreshAll(); navigate("history");
+  } else {
+    State.matches.push({ id: uid(), ...obj });
+    toast("Match logged! 🎉", "success"); save();
+    renderLogger();            // reset form for rapid entry
+    $("#navMatchCount").textContent = State.matches.length;
+  }
+}
+function editMatch(id) { navigate("logger"); renderLogger(id);
+  $("#pageTitle").innerHTML = `<h1>Edit Match</h1><p>Update this game result</p>`; }
+function deleteMatch(id) {
+  confirmModal("Delete Match?", "This permanently removes the match record.",
+    () => { State.matches = State.matches.filter(m => m.id !== id); save(); refreshAll(); toast("Match deleted.", "info"); });
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. MATCH HISTORY (filters, sort, table)                            */
+/* ------------------------------------------------------------------ */
+let histSort = { key: "date", dir: -1 };
+let selected = new Set();          // ids of matches checked for bulk actions
+let lastVisibleIds = [];           // ids currently shown (post-filter), used by "select all"
+let expandedRows = new Set();      // ids of matches whose notes are expanded
+
+/** Toggle the expandable notes detail row for a match. */
+function toggleExpand(id) {
+  if (expandedRows.has(id)) expandedRows.delete(id); else expandedRows.add(id);
+  applyHistory();
+}
+
+function renderHistory() {
+  const el = $("#page-history");
+  if (State.matches.length === 0) {
+    selected.clear();
+    el.innerHTML = emptyState("📜", "No matches recorded", "Your logged matches will appear here.",
+      `<button class="btn btn-primary" onclick="navigate('logger')">Log a Match</button>`);
+    return;
+  }
+  const deckOpts = State.decks.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+  el.innerHTML = `
+    <div class="glass filters">
+      <div class="field"><label>Search opponent / event</label><input class="input" id="fSearch" placeholder="Type to search..."></div>
+      <div class="field"><label>Deck</label><select class="select" id="fDeck"><option value="">All decks</option>${deckOpts}</select></div>
+      <div class="field"><label>Type</label><select class="select" id="fType"><option value="">All</option><option>Online</option><option>In Person</option></select></div>
+      <div class="field"><label>Format</label><select class="select" id="fFormat"><option value="">All</option><option>BO1</option><option>BO3</option></select></div>
+      <div class="field"><label>Position</label><select class="select" id="fPos"><option value="">All</option><option value="First">Went First</option><option value="Second">Went Second</option></select></div>
+      <div class="field"><label>Result</label><select class="select" id="fResult"><option value="">All</option><option value="win">Wins</option><option value="loss">Losses</option><option value="draw">Draws</option></select></div>
+      <div class="field"><label>Brick</label><select class="select" id="fBrick"><option value="">All</option><option value="yes">🧱 Bricked</option><option value="no">No brick</option></select></div>
+      <div class="field"><label>From date</label><input class="input" type="date" id="fFrom"></div>
+      <div class="field"><label>To date</label><input class="input" type="date" id="fTo"></div>
+    </div>
+
+    <!-- Bulk-action toolbar (hidden until at least one row is selected) -->
+    <div class="glass bulk-bar" id="bulkBar" style="display:none">
+      <button class="chk" id="chkAll" onclick="toggleSelectAll()" title="Select all visible"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></button>
+      <span class="count" id="bulkCount">0 selected</span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSelected()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+        Delete Selected</button>
+    </div>
+
+    <div class="glass" style="padding:8px 4px">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:40px"><button class="chk" id="chkHead" onclick="toggleSelectAll()" title="Select all visible"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></button></th>
+            ${th("date", "Date")}${th("deck", "Deck")}${th("opponent", "Opponent")}
+            ${th("format", "Fmt")}${th("position", "Pos")}${th("type", "Type")}
+            ${th("result", "Result")}<th>Brick</th><th>Event</th><th></th>
+          </tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+      <div id="histEmpty" class="empty" style="display:none"><div class="ico">🔍</div><h3>No matches match your filters</h3></div>
+    </div>`;
+
+  ["fSearch", "fDeck", "fType", "fFormat", "fPos", "fResult", "fBrick", "fFrom", "fTo"].forEach(id => {
+    const e = $("#" + id); e.addEventListener("input", applyHistory); e.addEventListener("change", applyHistory);
+  });
+  applyHistory();
+}
+function th(key, label) {
+  const arrow = histSort.key === key ? (histSort.dir === 1 ? " ▲" : " ▼") : "";
+  return `<th onclick="sortHistory('${key}')">${label}${arrow}</th>`;
+}
+function sortHistory(key) {
+  if (histSort.key === key) histSort.dir *= -1; else { histSort.key = key; histSort.dir = 1; }
+  renderHistory();
+}
+
+/* ---- bulk selection helpers ---- */
+/** Toggle a single row's checkbox. */
+function toggleRow(id) {
+  if (selected.has(id)) selected.delete(id); else selected.add(id);
+  applyHistory();
+}
+/** Select all currently-visible rows, or clear if all are already selected. */
+function toggleSelectAll() {
+  const allOn = lastVisibleIds.length > 0 && lastVisibleIds.every(id => selected.has(id));
+  if (allOn) lastVisibleIds.forEach(id => selected.delete(id));
+  else lastVisibleIds.forEach(id => selected.add(id));
+  applyHistory();
+}
+function clearSelection() { selected.clear(); applyHistory(); }
+/** Delete every selected match after confirmation. */
+function deleteSelected() {
+  const n = selected.size;
+  if (!n) return;
+  confirmModal("Delete Selected Matches?",
+    `This will permanently delete <b>${n}</b> match${n > 1 ? "es" : ""}. This cannot be undone.`,
+    () => {
+      State.matches = State.matches.filter(m => !selected.has(m.id));
+      selected.clear();
+      save(); refreshAll();
+      toast(`${n} match${n > 1 ? "es" : ""} deleted.`, "info");
+    }, `Delete ${n}`);
+}
+
+/** Filter + sort matches, then paint table rows (with checkboxes + sprites). */
+function applyHistory() {
+  const q = $("#fSearch").value.toLowerCase().trim();
+  const fDeck = $("#fDeck").value, fType = $("#fType").value, fFormat = $("#fFormat").value,
+        fPos = $("#fPos").value, fResult = $("#fResult").value, fBrick = $("#fBrick").value,
+        fFrom = $("#fFrom").value, fTo = $("#fTo").value;
+
+  let rows = State.matches.filter(m => {
+    if (fDeck && m.deckId !== fDeck) return false;
+    if (fType && m.type !== fType) return false;
+    if (fFormat && m.format !== fFormat) return false;
+    if (fPos && m.position !== fPos) return false;
+    if (fResult === "win" && !isWin(m)) return false;
+    if (fResult === "loss" && !isLoss(m)) return false;
+    if (fResult === "draw" && !isDraw(m)) return false;
+    if (fBrick === "yes" && !m.bricked) return false;
+    if (fBrick === "no" && m.bricked) return false;
+    if (fFrom && m.date < fFrom) return false;
+    if (fTo && m.date > fTo) return false;
+    if (q) { const hay = (m.opponent + " " + m.event + " " + deckName(m.deckId)).toLowerCase(); if (!hay.includes(q)) return false; }
+    return true;
+  });
+
+  const k = histSort.key, dir = histSort.dir;
+  rows.sort((a, b) => {
+    let av = k === "deck" ? deckName(a.deckId) : a[k];
+    let bv = k === "deck" ? deckName(b.deckId) : b[k];
+    return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
+  });
+
+  lastVisibleIds = rows.map(m => m.id);
+  // prune selections that are no longer visible so counts stay honest
+  [...selected].forEach(id => { if (!lastVisibleIds.includes(id)) selected.delete(id); });
+
+  const body = $("#histBody");
+  $("#histEmpty").style.display = rows.length ? "none" : "";
+  body.innerHTML = rows.map(m => {
+    const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
+    const label = isWin(m) ? "Win" : isLoss(m) ? "Loss" : "Draw";
+    const on = selected.has(m.id);
+    const hasDetail = (m.notes && m.notes.trim()) || (m.extraNotes && m.extraNotes.trim());
+    const open = expandedRows.has(m.id);
+    return `<tr class="${on ? "selected" : ""}">
+      <td><button class="chk ${on ? "on" : ""}" onclick="toggleRow('${m.id}')" aria-label="Select match">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></button></td>
+      <td>${fmtDate(m.date)}</td>
+      <td><div class="cell-deck">${pokeSprite(deckName(m.deckId), 26)}<b>${esc(deckName(m.deckId))}</b></div></td>
+      <td>${m.opponent ? `<div class="cell-deck">${pokeSprite(m.opponent, 24)}${esc(m.opponent)}</div>` : "<span style='color:var(--txt-2)'>—</span>"}</td>
+      <td><span class="pill muted">${m.format}</span></td>
+      <td>${m.position === "First" ? "1st" : "2nd"}</td>
+      <td>${m.type === "Online" ? "🌐" : "🏠"} ${m.type}</td>
+      <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
+      <td>${m.bricked ? `<span class="pill loss" title="Deck bricked">🧱 Brick</span>` : `<span style="color:var(--txt-2)">—</span>`}</td>
+      <td style="color:var(--txt-2)">${esc(m.event) || "—"}</td>
+      <td><div class="row-actions">
+        ${hasDetail ? `<button class="btn btn-ghost btn-icon btn-sm ${open?'note-open':''}" title="View notes" onclick="toggleExpand('${m.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>` : ""}
+        <button class="btn btn-ghost btn-icon btn-sm" title="Edit" onclick="editMatch('${m.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn btn-danger btn-icon btn-sm" title="Delete" onclick="deleteMatch('${m.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+      </div></td>
+    </tr>
+    ${open && hasDetail ? `<tr class="detail-row"><td></td><td colspan="10">
+      <div class="match-detail">
+        ${m.notes && m.notes.trim() ? `<div class="note-block"><span class="note-label">📝 Notes</span><p>${esc(m.notes)}</p></div>` : ""}
+        ${m.extraNotes && m.extraNotes.trim() ? `<div class="note-block"><span class="note-label">📌 Extra info</span><p>${esc(m.extraNotes)}</p></div>` : ""}
+      </div>
+    </td></tr>` : ""}`;
+  }).join("");
+
+  // sync the bulk toolbar + header checkbox state
+  const count = selected.size;
+  const bar = $("#bulkBar");
+  if (bar) {
+    bar.style.display = count ? "flex" : "none";
+    $("#bulkCount").textContent = `${count} selected`;
+    const allOn = lastVisibleIds.length > 0 && lastVisibleIds.every(id => selected.has(id));
+    $("#chkHead").classList.toggle("on", allOn);
+    $("#chkAll").classList.toggle("on", allOn);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 9. SETTINGS / DATA MANAGEMENT                                      */
+/* ------------------------------------------------------------------ */
+function renderSettings() {
+  const el = $("#page-settings");
+  const size = (() => { try { return (new Blob([JSON.stringify(State)]).size / 1024).toFixed(1); } catch { return "?"; } })();
+  el.innerHTML = `
+    <div class="grid stat-grid" style="margin-bottom:6px">
+      ${statCard("Decks", State.decks.length, "", "accent")}
+      ${statCard("Matches", State.matches.length, "", "accent")}
+      ${statCard("Storage Used", size + " KB", "in LocalStorage", "gold")}
+    </div>
+
+    <div class="settings-card glass" style="margin-top:22px">
+      <h3>☁️ Cloud Sync</h3>
+      ${Cloud.enabled
+        ? (Cloud.user
+          ? `<p>Signed in as <b>${esc(Cloud.user.email || "your account")}</b>. Your data syncs automatically to every device you log in on. Status: <b style="color:${Cloud.status==='synced'?'var(--win)':Cloud.status==='error'?'var(--loss)':'var(--draw)'}">${Cloud.status}</b>.</p>
+             <div class="settings-actions">
+               <button class="btn btn-ghost" onclick="cloudPush(true).then(()=>toast('Synced to cloud.','success')).catch(()=>toast('Sync failed.','error'))">Sync now</button>
+               <button class="btn btn-danger" onclick="cloudSignOut()">Sign out</button>
+             </div>`
+          : `<p>Cloud sync is configured but you're in local-only mode. Reload and sign in to sync across devices.</p>
+             <div class="settings-actions"><button class="btn btn-primary" onclick="showAuth(true)">Sign in</button></div>`)
+        : `<p>This copy is running <b>local-only</b> — data lives in this browser. To sync across devices, add your Supabase keys at the top of the HTML file (see the setup guide that came with it).</p>`}
+    </div>
+
+    <div class="settings-card glass">
+      <h3>💾 Export Data</h3>
+      <p>Download a complete JSON snapshot of every deck and match. Use this to migrate between browsers or keep an archive.</p>
+      <div class="settings-actions">
+        <button class="btn btn-primary" onclick="exportData()">Export as JSON</button>
+        <button class="btn btn-gold" onclick="backupData()">One-Click Backup</button>
+      </div>
+    </div>
+
+    <div class="settings-card glass">
+      <h3>📥 Import Data</h3>
+      <p>Load a previously exported JSON file. <b>This replaces all current data</b>, so back up first if needed.</p>
+      <div class="dz" id="impDrop">⬆ Drop a .json file here or click to choose</div>
+      <input type="file" id="impFile" accept=".json,application/json" style="display:none">
+    </div>
+
+    <div class="settings-card glass">
+      <h3>🎨 Appearance</h3>
+      <p>Toggle between the default dark esports theme and a clean light theme.</p>
+      <div class="settings-actions">
+        <button class="btn btn-ghost" onclick="toggleTheme()">Switch to ${State.settings.theme === "dark" ? "Light" : "Dark"} Mode</button>
+      </div>
+    </div>
+
+    <div class="settings-card glass" style="border-color:rgba(255,93,108,.3)">
+      <h3>⚠ Danger Zone</h3>
+      <p>Permanently delete all decks and matches from this browser. This cannot be undone.</p>
+      <div class="settings-actions">
+        <button class="btn btn-danger" onclick="resetData()">Reset All Data</button>
+        <button class="btn btn-ghost" onclick="reseedData()">Reload Demo Data</button>
+      </div>
+    </div>`;
+
+  const drop = $("#impDrop"), file = $("#impFile");
+  drop.onclick = () => file.click();
+  file.onchange = () => { if (file.files[0]) importData(file.files[0]); };
+  ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) importData(f); });
+}
+
+function downloadJSON(filename) {
+  try {
+    const blob = new Blob([JSON.stringify(State, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch (err) { console.error(err); toast("Export failed.", "error"); return false; }
+}
+function exportData() { if (downloadJSON("poketracker-export.json")) toast("Exported JSON.", "success"); }
+function backupData() {
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  if (downloadJSON(`poketracker-backup-${stamp}.json`)) toast("Backup downloaded.", "success");
+}
+function importData(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (!data || !Array.isArray(data.decks) || !Array.isArray(data.matches))
+        throw new Error("Invalid structure");
+      confirmModal("Import & Replace?", `This will replace your current data with <b>${data.decks.length}</b> deck(s) and <b>${data.matches.length}</b> match(es).`,
+        () => {
+          State.decks = data.decks; State.matches = data.matches;
+          State.settings = data.settings || State.settings;
+          save(); applyTheme(); refreshAll(); navigate("dashboard");
+          toast("Data imported successfully.", "success");
+        });
+    } catch (err) { console.error(err); toast("Invalid JSON file — import aborted.", "error"); }
+  };
+  r.onerror = () => toast("Could not read file.", "error");
+  r.readAsText(file);
+}
+function resetData() {
+  confirmModal("Reset Everything?", "All decks and matches will be <b>permanently deleted</b>. This cannot be undone.",
+    () => { State = { decks: [], matches: [], settings: State.settings }; save(); refreshAll(); navigate("dashboard"); toast("All data cleared.", "info"); }, "Delete All");
+}
+function reseedData() {
+  confirmModal("Reload Demo Data?", "This replaces current data with the built-in example dataset.",
+    () => { seed(); applyTheme(); refreshAll(); navigate("dashboard"); toast("Demo data loaded.", "success"); });
+}
+
+/* ------------------------------------------------------------------ */
+/* 10. SHARED COMPONENTS                                              */
+/* ------------------------------------------------------------------ */
+function emptyState(ico, title, sub, action = "") {
+  return `<div class="glass empty" style="margin-top:10px"><div class="ico">${ico}</div><h3>${title}</h3><p>${sub}</p><div style="margin-top:18px">${action}</div></div>`;
+}
+/** Generic confirm modal that runs `onYes` when confirmed. */
+function confirmModal(title, body, onYes, yesLabel = "Confirm") {
+  openModal(`<h2>${title}</h2><p class="sub" style="margin-bottom:0">${body}</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmYes">${yesLabel}</button>
+    </div>`);
+  $("#confirmYes").onclick = () => { closeModal(); onYes(); };
+}
+
+/* ------------------------------------------------------------------ */
+/* 11. THEME                                                          */
+/* ------------------------------------------------------------------ */
+const SUN  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const MOON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>`;
+function applyTheme() {
+  const t = State.settings.theme || "dark";
+  document.body.dataset.theme = t;
+  $("#themeToggle").innerHTML = t === "dark" ? SUN : MOON;
+  if (currentPage === "dashboard") renderDashboard();   // rebuild charts with theme colors
+}
+function toggleTheme() {
+  State.settings.theme = State.settings.theme === "dark" ? "light" : "dark";
+  save(); applyTheme();
+  if (currentPage === "settings") renderSettings();
+}
+
+/* ------------------------------------------------------------------ */
+/* 12. MOBILE NAV                                                     */
+/* ------------------------------------------------------------------ */
+function openMobileNav()  { $("#sidebar").classList.add("open"); $("#scrim").classList.add("open"); }
+function closeMobileNav() { $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("open"); }
+
+/* ------------------------------------------------------------------ */
+/* 13. EVENT WIRING + BOOT                                            */
+/* ------------------------------------------------------------------ */
+$$(".nav-item").forEach(n => n.addEventListener("click", () => navigate(n.dataset.page)));
+$("#themeToggle").addEventListener("click", toggleTheme);
+$("#quickLog").addEventListener("click", () => navigate("logger"));
+$("#hamburger").addEventListener("click", openMobileNav);
+$("#scrim").addEventListener("click", closeMobileNav);
+
+// Submit auth form on Enter
+["authEmail", "authPass"].forEach(id => {
+  const el = $("#" + id);
+  if (el) el.addEventListener("keydown", e => { if (e.key === "Enter") cloudAuthSubmit(); });
+});
+
+// Rebuild responsive charts on resize (debounced)
+let rzT;
+window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => { if (currentPage === "dashboard") renderDashboard(); }, 250); });
+
+/** Boot the application. */
+/** Start the actual app UI (called after data is ready). */
+function startApp() {
+  applyTheme();
+  $("#navDeckCount").textContent  = State.decks.length;
+  $("#navMatchCount").textContent = State.matches.length;
+  navigate("dashboard");
+}
+
+/** Local-only boot path (no cloud, or user chose to skip login). */
+function bootLocal() {
+  setSyncStatus("offline");
+  $("#syncPill").style.display = "none";
+  loadLocal();
+  startApp();
+}
+
+/** Top-level boot: decide between cloud and local modes. */
+(async function init() {
+  const hasCloud = cloudInit();
+  if (!hasCloud) {
+    // No Supabase configured -> behave exactly like the original local app.
+    bootLocal();
+    return;
+  }
+  // Cloud configured: check for an existing session.
+  try {
+    const { data } = await Cloud.client.auth.getSession();
+    if (data?.session?.user) {
+      await onSignedIn(data.session.user);
+    } else {
+      showAuth(true);                 // show login screen
+      setSyncStatus("offline");
+      // still paint the theme behind the overlay
+      applyTheme();
+    }
+    // React to auth changes (e.g. token refresh / sign-out in another tab)
+    Cloud.client.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") { Cloud.user = null; showAuth(true); }
+    });
+  } catch (err) {
+    console.error("Auth check failed:", err);
+    bootLocal();                      // fail safe to local mode
+  }
+})();
+</script>
+</body>
+</html>
