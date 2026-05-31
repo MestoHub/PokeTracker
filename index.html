@@ -506,6 +506,10 @@ tbody tr:hover{background:var(--bg-2)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>
       Match History <span class="badge-count" id="navMatchCount" style="margin-left:auto">0</span>
     </a>
+    <a class="nav-item" data-page="tournaments">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
+      Tournaments <span class="badge-count" id="navTourneyCount" style="margin-left:auto">0</span>
+    </a>
     <a class="nav-item" data-page="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.66.34 1.45-.05 2.09"/></svg>
       Settings
@@ -556,6 +560,8 @@ tbody tr:hover{background:var(--bg-2)}
     <section class="page" id="page-logger"></section>
     <!-- ====== PAGE: HISTORY ====== -->
     <section class="page" id="page-history"></section>
+    <!-- ====== PAGE: TOURNAMENTS ====== -->
+    <section class="page" id="page-tournaments"></section>
     <!-- ====== PAGE: SETTINGS ====== -->
     <section class="page" id="page-settings"></section>
   </main>
@@ -610,6 +616,40 @@ const I18N = {
     "Log Match": "Registrar partida",
     "Match History": "Historial",
     "Settings": "Ajustes",
+    "Tournaments": "Torneos",
+    "Your events, grouped run by run": "Tus eventos, agrupados por participación",
+    "Your Tournaments": "Tus torneos",
+    "New Tournament": "Nuevo torneo",
+    "New": "Nuevo",
+    "Create a new tournament": "Crear un torneo nuevo",
+    "Create it now and it'll be selected for this match.": "Créalo ahora y quedará seleccionado para esta partida.",
+    "Create & select": "Crear y seleccionar",
+    "Create Tournament": "Crear torneo", "Edit Tournament": "Editar torneo",
+    "No tournaments yet": "Aún no hay torneos",
+    "Create a tournament — a Regional, a weekly cup, anything — then attach your matches to it.":
+      "Crea un torneo — un Regional, una copa semanal, lo que sea — y vincula tus partidas.",
+    "Group your matches into one event — official or casual.": "Agrupa tus partidas en un evento — oficial o casual.",
+    "Tournament Name": "Nombre del torneo", "Tournament": "Torneo",
+    "e.g. São Paulo Regional": "ej. Regional São Paulo",
+    "Final Placement": "Posición final", "e.g. Top 16 / 312": "ej. Top 16 / 312",
+    "Event Notes": "Notas del evento",
+    "How the run went, key matchups, what to change next time...": "Cómo fue, emparejamientos clave, qué cambiar la próxima vez...",
+    "Open": "Abrir", "Round": "Ronda", "vs": "vs", "Unlink": "Desvincular", "Add": "Añadir",
+    "Regional": "Regional", "International": "Internacional", "Local": "Local",
+    "League Cup": "Copa de Liga", "League Challenge": "Reto de Liga", "Other": "Otro",
+    "Link an existing match": "Vincular una partida existente",
+    "Choose a match to add…": "Elige una partida para añadir…",
+    "No unlinked matches available": "No hay partidas sin vincular",
+    "Tip: you can also pick this tournament in the Log Match form.": "Consejo: también puedes elegir este torneo al registrar la partida.",
+    "No matches linked yet.": "Aún no hay partidas vinculadas.",
+    "Delete Tournament?": "¿Eliminar torneo?",
+    "This removes the tournament.": "Esto elimina el torneo.",
+    "linked match(es) will be kept but unlinked.": "partida(s) se conservarán pero se desvincularán.",
+    "Tournament created.": "Torneo creado.", "Tournament updated.": "Torneo actualizado.", "Tournament deleted.": "Torneo eliminado.",
+    "Tournament name is required.": "El nombre del torneo es obligatorio.",
+    "Match linked.": "Partida vinculada.", "Match unlinked.": "Partida desvinculada.",
+    "Choose a match first.": "Elige una partida primero.",
+    "— none —": "— ninguno —",
     "Log a Match": "Registrar partida",
     "Edit Match ": "Editar partida ",
     "TCG Analytics": "Análisis TCG",
@@ -801,7 +841,7 @@ function toggleLang() {
 /** Apply translations to the static (non-rendered) HTML: nav + footer. */
 function applyStaticI18n() {
   // nav labels (preserve any trailing count badge element)
-  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", settings: "Settings" };
+  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", settings: "Settings" };
   $$(".nav-item").forEach(n => {
     const page = n.dataset.page, label = navMap[page];
     // first text node holds the label
@@ -833,7 +873,7 @@ function isWinResult(r) { return r === "Win" || r === "Match Win"; }
 /* ------------------------------------------------------------------ */
 /* 1. STATE & PERSISTENCE                                             */
 /* ------------------------------------------------------------------ */
-let State = { decks: [], matches: [], settings: { theme: "dark" } };
+let State = { decks: [], matches: [], tournaments: [], settings: { theme: "dark" } };
 
 /** Load state from LocalStorage (for the current user/local key). */
 function loadLocal() {
@@ -850,8 +890,9 @@ function loadLocal() {
 /** Validate/normalise an incoming State object. */
 function normaliseState(obj) {
   return {
-    decks:    Array.isArray(obj?.decks)   ? obj.decks   : [],
-    matches:  Array.isArray(obj?.matches) ? obj.matches : [],
+    decks:       Array.isArray(obj?.decks)       ? obj.decks       : [],
+    matches:     Array.isArray(obj?.matches)     ? obj.matches     : [],
+    tournaments: Array.isArray(obj?.tournaments) ? obj.tournaments : [],
     settings: (obj?.settings && typeof obj.settings === "object") ? obj.settings : { theme: "dark" },
   };
 }
@@ -1478,6 +1519,20 @@ Energy: 13
   }
   matches.sort((a, b) => a.date.localeCompare(b.date));
   State.matches = matches;
+
+  // --- seed a couple of tournaments and attach some recent matches ---
+  const t = (name, daysAgo, type, placement, notes) => ({
+    id: uid(), name, date: new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10),
+    type, placement, notes
+  });
+  const regional = t("São Paulo Regional", 9, "Regional", "Top 16 / 312", "Lost win-and-in round 8 to Gardevoir. Should have benched the Manaphy turn 1.");
+  const weekly = t("Tuesday Night Weekly", 4, "Local", "2nd / 18", "Good prep run. Mirror matchup felt close.");
+  State.tournaments = [regional, weekly];
+  // attach the last 8 in-person matches to the regional, and 3 before that to the weekly
+  const inPerson = matches.filter(m => m.type === "In Person");
+  inPerson.slice(-8).forEach(m => m.tournamentId = regional.id);
+  inPerson.slice(-12, -8).forEach(m => m.tournamentId = weekly.id);
+
   State.settings = { theme: "dark" };
   save();
 }
@@ -1572,6 +1627,7 @@ const PAGE_META = {
   decks:     ["Decks", "Manage your archetypes and decklists"],
   logger:    ["Log a Match", "Record a new game result"],
   history:   ["Match History", "Search, filter, and edit past matches"],
+  tournaments: ["Tournaments", "Your events, grouped run by run"],
   settings:  ["Settings", "Backup, import, export, and reset your data"],
 };
 let currentPage = "dashboard";
@@ -1590,12 +1646,13 @@ function navigate(page) {
 }
 function renderPage(page) {
   ({ dashboard: renderDashboard, decks: renderDecks, logger: renderLogger,
-     history: renderHistory, settings: renderSettings }[page] || (() => {}))();
+     history: renderHistory, tournaments: renderTournaments, settings: renderSettings }[page] || (() => {}))();
 }
 /** Re-render the active page + sidebar counters after any data change. */
 function refreshAll() {
   $("#navDeckCount").textContent  = State.decks.length;
   $("#navMatchCount").textContent = State.matches.length;
+  const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
   renderPage(currentPage);
 }
 
@@ -2325,6 +2382,14 @@ function renderLogger(editId) {
         <input class="input" id="mOpp" placeholder="e.g. Gardevoir ex" value="${m ? esc(m.opponent) : ""}"></div>
       <div class="field"><label>${t("Event")} <span class="opt">${t("(optional)")}</span></label>
         <input class="input" id="mEvent" placeholder="e.g. Regional Championship" value="${m ? esc(m.event) : ""}"></div>
+      <div class="field"><label>${t("Tournament")} <span class="opt">${t("(optional)")}</span></label>
+        <div style="display:flex;gap:8px">
+          <select class="select" id="mTournament" style="flex:1">
+            <option value="">${t("— none —")}</option>
+            ${[...State.tournaments].sort((a,b)=>b.date.localeCompare(a.date)).map(tr => `<option value="${tr.id}" ${m && m.tournamentId === tr.id ? "selected" : ""}>${esc(tr.name)} · ${fmtDate(tr.date)}</option>`).join("")}
+          </select>
+          <button type="button" class="btn btn-ghost" style="white-space:nowrap" onclick="quickCreateTournament()" title="${t("Create a new tournament")}">+ ${t("New")}</button>
+        </div></div>
     </div>
 
     <div class="form-grid" style="margin-top:18px">
@@ -2416,6 +2481,7 @@ function saveMatch(id) {
     deckId, date,
     opponent: $("#mOpp").value.trim(),
     event: $("#mEvent").value.trim(),
+    tournamentId: $("#mTournament") ? ($("#mTournament").value || undefined) : undefined,
     notes: $("#mNotes").value.trim(),
     extraNotes: $("#mExtra").value.trim(),
     bricked: $('input[name="brick"]:checked')?.value === "yes",
@@ -2630,6 +2696,232 @@ function applyHistory() {
 }
 
 /* ------------------------------------------------------------------ */
+/* 8b. TOURNAMENTS                                                    */
+/* ---------------------------------------------------------------------
+   A tournament groups matches into one event "run". Matches store an
+   optional tournamentId; tournaments hold name/date/type/placement/notes.
+   Matches can be linked from the logger (dropdown) or from inside a
+   tournament. Stats for a run are derived live from its matches.
+   --------------------------------------------------------------------- */
+const TOURNEY_TYPES = ["Regional", "International", "Local", "League Cup", "League Challenge", "Online", "Other"];
+
+/** Matches belonging to a tournament, oldest first (round order). */
+function tournamentMatches(tid) {
+  return by(State.matches, m => m.tournamentId === tid).sort((a, b) => a.date.localeCompare(b.date) || (a.id < b.id ? -1 : 1));
+}
+function tournamentName(tid) { return State.tournaments.find(x => x.id === tid)?.name || ""; }
+
+function renderTournaments() {
+  const el = $("#page-tournaments");
+  const head = `<div class="section-head" style="margin-top:0">
+    <h2><span class="dot"></span> ${t("Your Tournaments")} <span class="badge-count">${State.tournaments.length}</span></h2>
+    <button class="btn btn-gold" onclick="openTournamentModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> ${t("New Tournament")}</button>
+  </div>`;
+
+  if (State.tournaments.length === 0) {
+    el.innerHTML = head + emptyState("🏆", "No tournaments yet",
+      "Create a tournament — a Regional, a weekly cup, anything — then attach your matches to it.",
+      `<button class="btn btn-primary" onclick="openTournamentModal()">${t("Create Tournament")}</button>`);
+    return;
+  }
+
+  // newest first
+  const sorted = [...State.tournaments].sort((a, b) => b.date.localeCompare(a.date));
+  el.innerHTML = head + `<div class="grid deck-grid">${sorted.map((tr, i) => {
+    const ms = tournamentMatches(tr.id);
+    const s = tally(ms);
+    const decksUsed = [...new Set(ms.map(m => m.deckId))].map(deckName).filter(Boolean);
+    return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
+      <div class="top">
+        <div style="max-width:72%">
+          <h3>${esc(tr.name)}</h3>
+          <div class="created">${t(tr.type) || ""} · ${fmtDate(tr.date)}</div>
+        </div>
+        ${tr.placement ? `<div class="wr-badge" style="font-size:14px;text-align:center;line-height:1.2">${esc(tr.placement)}</div>` : ""}
+      </div>
+      <div class="deck-stats">
+        <div class="deck-stat"><div class="k">${t("Record")}</div><div class="v">${s.record}</div></div>
+        <div class="deck-stat"><div class="k">${t("Win %")}</div><div class="v" style="color:${wrColor(s.wr)}">${s.wr}%</div></div>
+        <div class="deck-stat" style="grid-column:span 2"><div class="k">${t("Deck")}</div><div class="v" style="font-size:13px">${decksUsed.length ? esc(decksUsed.join(", ")) : "—"}</div></div>
+      </div>
+      ${tr.notes ? `<p style="font-size:12.5px;color:var(--txt-1);margin-top:12px;line-height:1.5;background:var(--bg-2);border-radius:10px;padding:10px 12px;border:1px solid var(--stroke)">${esc(tr.notes)}</p>` : ""}
+      <div class="actions">
+        <button class="btn btn-primary btn-sm" onclick="viewTournament('${tr.id}')">${t("Open")} (${ms.length})</button>
+        <button class="btn btn-ghost btn-sm" onclick="openTournamentModal('${tr.id}')">${t("Edit")}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTournament('${tr.id}')" style="margin-left:auto">${t("Delete")}</button>
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/** Create / edit a tournament. */
+function openTournamentModal(id) {
+  const tr = id ? State.tournaments.find(x => x.id === id) : null;
+  openModal(`
+    <h2>${tr ? t("Edit Tournament") : t("New Tournament")}</h2>
+    <p class="sub">${t("Group your matches into one event — official or casual.")}</p>
+    <div class="form-grid">
+      <div class="field"><label>${t("Tournament Name")}</label>
+        <input class="input" id="trName" placeholder="${t("e.g. São Paulo Regional")}" value="${tr ? esc(tr.name) : ""}"></div>
+      <div class="field"><label>${t("Date")}</label>
+        <input class="input" type="date" id="trDate" value="${tr ? tr.date : todayISO()}"></div>
+      <div class="field"><label>${t("Type")}</label>
+        <select class="select" id="trType">${TOURNEY_TYPES.map(tp => `<option value="${tp}" ${tr && tr.type === tp ? "selected" : ""}>${t(tp)}</option>`).join("")}</select></div>
+      <div class="field"><label>${t("Final Placement")} <span class="opt">${t("(optional)")}</span></label>
+        <input class="input" id="trPlace" placeholder="${t("e.g. Top 16 / 312")}" value="${tr ? esc(tr.placement || "") : ""}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>${t("Event Notes")} <span class="opt">${t("(optional)")}</span></label>
+      <textarea class="textarea" id="trNotes" placeholder="${t("How the run went, key matchups, what to change next time...")}">${tr ? esc(tr.notes || "") : ""}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveTournament('${tr ? tr.id : ""}')">${tr ? t("Save Changes") : t("Create Tournament")}</button>
+    </div>`);
+  setTimeout(() => $("#trName").focus(), 50);
+}
+/**
+ * Inline tournament creator for the Log Match form. Opens a small modal,
+ * creates the tournament, then closes and re-selects it in the logger's
+ * dropdown WITHOUT rebuilding the match form (so half-entered data stays).
+ */
+function quickCreateTournament() {
+  openModal(`
+    <h2>${t("New Tournament")}</h2>
+    <p class="sub">${t("Create it now and it'll be selected for this match.")}</p>
+    <div class="form-grid">
+      <div class="field"><label>${t("Tournament Name")}</label>
+        <input class="input" id="qtName" placeholder="${t("e.g. São Paulo Regional")}"></div>
+      <div class="field"><label>${t("Date")}</label>
+        <input class="input" type="date" id="qtDate" value="${todayISO()}"></div>
+      <div class="field"><label>${t("Type")}</label>
+        <select class="select" id="qtType">${TOURNEY_TYPES.map(tp => `<option value="${tp}">${t(tp)}</option>`).join("")}</select></div>
+      <div class="field"><label>${t("Final Placement")} <span class="opt">${t("(optional)")}</span></label>
+        <input class="input" id="qtPlace" placeholder="${t("e.g. Top 16 / 312")}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>${t("Event Notes")} <span class="opt">${t("(optional)")}</span></label>
+      <textarea class="textarea" id="qtNotes" placeholder="${t("How the run went, key matchups, what to change next time...")}"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveQuickTournament()">${t("Create & select")}</button>
+    </div>`);
+  setTimeout(() => $("#qtName").focus(), 50);
+}
+/** Save the inline tournament, then inject + select it in the logger dropdown. */
+function saveQuickTournament() {
+  const name = $("#qtName").value.trim();
+  if (!name) { toast("Tournament name is required.", "error"); return; }
+  const tr = {
+    id: uid(), name, date: $("#qtDate").value || todayISO(),
+    type: $("#qtType").value, placement: $("#qtPlace").value.trim(), notes: $("#qtNotes").value.trim()
+  };
+  State.tournaments.push(tr);
+  save();
+  closeModal();
+  // Update the logger dropdown in place (preserves the rest of the form).
+  const sel = $("#mTournament");
+  if (sel) {
+    const opt = document.createElement("option");
+    opt.value = tr.id;
+    opt.textContent = `${tr.name} · ${fmtDate(tr.date)}`;
+    // insert right after the "— none —" option, since it's the newest
+    sel.insertBefore(opt, sel.options[1] || null);
+    sel.value = tr.id;
+  }
+  // keep the sidebar counter fresh without re-rendering the logger
+  const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
+  toast("Tournament created.", "success");
+}
+
+function saveTournament(id) {
+  const name = $("#trName").value.trim();
+  if (!name) { toast("Tournament name is required.", "error"); return; }
+  const obj = {
+    name, date: $("#trDate").value || todayISO(),
+    type: $("#trType").value, placement: $("#trPlace").value.trim(), notes: $("#trNotes").value.trim()
+  };
+  if (id) { Object.assign(State.tournaments.find(x => x.id === id), obj); toast("Tournament updated.", "success"); }
+  else { State.tournaments.push({ id: uid(), ...obj }); toast("Tournament created.", "success"); }
+  save(); closeModal(); refreshAll();
+}
+function deleteTournament(id) {
+  const n = by(State.matches, m => m.tournamentId === id).length;
+  confirmModal("Delete Tournament?",
+    `${t("This removes the tournament.")}${n ? ` ${n} ${t("linked match(es) will be kept but unlinked.")}` : ""}`,
+    () => {
+      State.matches.forEach(m => { if (m.tournamentId === id) delete m.tournamentId; });
+      State.tournaments = State.tournaments.filter(x => x.id !== id);
+      save(); refreshAll(); toast("Tournament deleted.", "info");
+    });
+}
+
+/** Open a tournament: round-by-round match list + summary + link/unlink. */
+function viewTournament(id) {
+  const tr = State.tournaments.find(x => x.id === id);
+  if (!tr) return;
+  const ms = tournamentMatches(id);
+  const s = tally(ms);
+  const unlinked = State.matches.filter(m => !m.tournamentId).sort((a, b) => b.date.localeCompare(a.date));
+
+  const rows = ms.map((m, i) => {
+    const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
+    const label = isWin(m) ? t("Win") : isLoss(m) ? t("Loss") : t("Draw");
+    return `<tr>
+      <td style="color:var(--txt-2)">${t("Round")} ${i + 1}</td>
+      <td><div class="cell-deck">${pokeSprite(deckName(m.deckId),24)}<b>${esc(deckName(m.deckId))}</b></div></td>
+      <td>${t("vs")} ${m.opponent ? `<span class="cell-deck" style="display:inline-flex">${pokeSprite(m.opponent,22)}${esc(m.opponent)}</span>` : "—"}</td>
+      <td><span class="pill muted">${m.format}</span></td>
+      <td>${m.position === "First" ? t("1st") : t("2nd")}</td>
+      <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
+      <td>${m.bricked ? `<span class="pill loss">${t("🧱 Brick")}</span>` : ""}</td>
+      <td><button class="btn btn-ghost btn-icon btn-sm" title="${t("Unlink")}" onclick="unlinkMatch('${m.id}','${id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M18.84 12.25l1.72-1.71a4 4 0 00-5.66-5.66l-1.71 1.72M5.17 11.75l-1.72 1.71a4 4 0 005.66 5.66l1.71-1.72M8 12h8"/></svg></button></td>
+    </tr>`;
+  }).join("");
+
+  openModal(`
+    <h2>${esc(tr.name)}</h2>
+    <p class="sub">${t(tr.type)} · ${fmtDate(tr.date)}${tr.placement ? " · " + esc(tr.placement) : ""}</p>
+    <div class="grid stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      ${statCard("Record", s.record, "", "accent")}
+      ${statCard("Win %", s.wr + "%", "", "gold")}
+      ${statCard("Matches", ms.length, "", "accent")}
+    </div>
+    ${tr.notes ? `<div class="note-block" style="margin-bottom:16px"><span class="note-label">📌 ${t("Event Notes")}</span><p>${esc(tr.notes)}</p></div>` : ""}
+    ${ms.length ? `<div class="table-wrap" style="margin-bottom:8px"><table style="min-width:620px"><tbody>${rows}</tbody></table></div>`
+                : `<div style="text-align:center;color:var(--txt-2);padding:20px">${t("No matches linked yet.")}</div>`}
+
+    <div class="field" style="margin-top:8px">
+      <label>${t("Link an existing match")}</label>
+      <div style="display:flex;gap:8px">
+        <select class="select" id="linkMatchSel" style="flex:1">
+          <option value="">${unlinked.length ? t("Choose a match to add…") : t("No unlinked matches available")}</option>
+          ${unlinked.slice(0, 60).map(m => {
+            const r = isWin(m) ? "W" : isLoss(m) ? "L" : "D";
+            return `<option value="${m.id}">${fmtDate(m.date)} · ${esc(deckName(m.deckId))} ${t("vs")} ${esc(m.opponent || "—")} · ${r}</option>`;
+          }).join("")}
+        </select>
+        <button class="btn btn-primary" onclick="linkSelectedMatch('${id}')">${t("Add")}</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--txt-2);margin-top:6px">${t("Tip: you can also pick this tournament in the Log Match form.")}</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Close")}</button>
+      <button class="btn btn-primary" onclick="openTournamentModal('${id}')">${t("Edit")}</button>
+    </div>`, true);
+}
+function linkSelectedMatch(tid) {
+  const mid = $("#linkMatchSel").value;
+  if (!mid) { toast("Choose a match first.", "error"); return; }
+  const m = State.matches.find(x => x.id === mid);
+  if (m) { m.tournamentId = tid; save(); toast("Match linked.", "success"); viewTournament(tid); refreshAll(); }
+}
+function unlinkMatch(mid, tid) {
+  const m = State.matches.find(x => x.id === mid);
+  if (m) { delete m.tournamentId; save(); toast("Match unlinked.", "info"); viewTournament(tid); refreshAll(); }
+}
+
+/* ------------------------------------------------------------------ */
 /* 9. SETTINGS / DATA MANAGEMENT                                      */
 /* ------------------------------------------------------------------ */
 function renderSettings() {
@@ -2733,7 +3025,7 @@ function importData(file) {
 }
 function resetData() {
   confirmModal("Reset Everything?", "All decks and matches will be <b>permanently deleted</b>. This cannot be undone.",
-    () => { State = { decks: [], matches: [], settings: State.settings }; save(); refreshAll(); navigate("dashboard"); toast("All data cleared.", "info"); }, "Delete All");
+    () => { State = { decks: [], matches: [], tournaments: [], settings: State.settings }; save(); refreshAll(); navigate("dashboard"); toast("All data cleared.", "info"); }, "Delete All");
 }
 function reseedData() {
   confirmModal("Reload Demo Data?", "This replaces current data with the built-in example dataset.",
