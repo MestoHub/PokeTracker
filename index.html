@@ -304,6 +304,9 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 .cons-chip b{font-family:'Chakra Petch';font-size:16px}
 .deck-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
 .deck-stat{background:var(--bg-2);border-radius:10px;padding:9px 11px;border:1px solid var(--stroke)}
+.deck-stat.tourney-deck-box.clickable{cursor:pointer;transition:all .18s}
+.deck-stat.tourney-deck-box.clickable:hover{border-color:var(--accent);background:var(--bg-1);transform:translateY(-1px);box-shadow:0 4px 14px rgba(91,140,255,.18)}
+.deck-view-hint{color:var(--accent);font-weight:600;font-size:9.5px}
 .deck-stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-2)}
 .deck-stat .v{font-family:'Chakra Petch';font-size:15px;font-weight:600;margin-top:2px}
 .deck-card .actions{display:flex;gap:8px;margin-top:16px}
@@ -620,6 +623,13 @@ const I18N = {
     "Your events, grouped run by run": "Tus eventos, agrupados por participación",
     "Your Tournaments": "Tus torneos",
     "New Tournament": "Nuevo torneo",
+    "View the decklist used": "Ver la lista usada",
+    "· view list": "· ver lista",
+    "Decklist used at this event": "Lista usada en este evento",
+    "snapshot": "captura",
+    "↻ Refresh from deck": "↻ Actualizar desde el mazo",
+    "Replace the frozen list with the deck's current list": "Reemplazar la lista congelada por la lista actual del mazo",
+    "Decklist snapshot updated.": "Captura de la lista actualizada.",
     "New": "Nuevo",
     "Create a new tournament": "Crear un torneo nuevo",
     "Create it now and it'll be selected for this match.": "Créalo ahora y quedará seleccionado para esta partida.",
@@ -1600,6 +1610,11 @@ function rankedDecks() {
 }
 
 const deckName = (id) => State.decks.find(d => d.id === id)?.name || "— deleted deck —";
+/** Find a deck by id, including temporary frozen tournament-decklist objects. */
+function findDeck(id) {
+  if (typeof _frozenDeckCache !== "undefined" && _frozenDeckCache[id]) return _frozenDeckCache[id];
+  return State.decks.find(d => d.id === id);
+}
 
 /* ------------------------------------------------------------------ */
 /* 4. SMALL UI HELPERS (toast, modal, nav)                            */
@@ -2119,9 +2134,13 @@ function proxiedURL(url) {
 }
 
 function viewDecklist(id) {
-  const d = State.decks.find(x => x.id === id);
+  const d = findDeck(id);
   const parsed = parseDecklist(d.decklist);
-  openModal(`<h2>${esc(d.name)}</h2><p class="sub">Created ${fmtDate(d.created)} · ${parsed.parsed ? parsed.total + " cards" : "no decklist"}</p>
+  const frozenTid = d._frozenTournamentId || null;
+  const subNote = frozenTid
+    ? `${t("Decklist used at this event")}${d.created ? " · " + t("snapshot") + " " + fmtDate(d.created) : ""} · ${parsed.parsed ? parsed.total + " " + t("cards") : t("no decklist")}`
+    : `${t("Created")} ${fmtDate(d.created)} · ${parsed.parsed ? parsed.total + " " + t("cards") : t("no decklist")}`;
+  openModal(`<h2>${esc(d.name)}</h2><p class="sub">${subNote}</p>
     <div id="dlTabs" style="display:flex;gap:8px;margin-bottom:14px">
       <button class="btn btn-ghost btn-sm dl-tab active" onclick="dlTab('image')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>${t("🖼️ Cards")}</button>
       <button class="btn btn-ghost btn-sm dl-tab" onclick="dlTab('text')">${t("📄 Text")}</button>
@@ -2136,7 +2155,9 @@ function viewDecklist(id) {
       <button class="btn btn-ghost" onclick="closeModal()">${t("Close")}</button>
       <button class="btn btn-ghost" onclick="copyDecklist('${d.id}')">${t("Copy text")}</button>
       <button class="btn btn-gold" id="dlDownload" data-deck="${d.id}" onclick="downloadDeckImage('${d.id}')" ${parsed.parsed ? "" : "disabled style='opacity:.4;cursor:not-allowed'"}>${t("⬇ Save as JPG")}</button>
-      <button class="btn btn-primary" onclick="openDeckModal('${d.id}')">${t("Edit")}</button>
+      ${frozenTid
+        ? `<button class="btn btn-ghost" onclick="refreshTournamentSnapshot('${frozenTid}')" title="${t("Replace the frozen list with the deck's current list")}">${t("↻ Refresh from deck")}</button>`
+        : `<button class="btn btn-primary" onclick="openDeckModal('${d.id}')">${t("Edit")}</button>`}
     </div>`, true);
   // default to the visual card grid
   if (parsed.parsed) renderCardGrid(id);
@@ -2153,7 +2174,7 @@ function dlTab(which) {
   }
 }
 function copyDecklist(id) {
-  const d = State.decks.find(x => x.id === id);
+  const d = findDeck(id);
   navigator.clipboard?.writeText(d.decklist || "").then(
     () => toast("Decklist copied.", "success"),
     () => toast("Copy failed.", "error"));
@@ -2166,7 +2187,7 @@ function copyDecklist(id) {
  * <img> tags don't require CORS, so this always works with a connection.
  */
 function renderCardGrid(id) {
-  const deck = State.decks.find(d => d.id === id);
+  const deck = findDeck(id);
   const parsed = parseDecklist(deck.decklist);
   const holder = $("#dlCardGrid");
   if (!holder) return;
@@ -2331,7 +2352,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 /** Build the image and trigger a JPG download. */
 async function downloadDeckImage(id) {
-  const deck = State.decks.find(d => d.id === id);
+  const deck = findDeck(id);
   try {
     toast("Building deck image…", "info");
     const canvas = await buildDeckCanvas(deck);
@@ -2711,6 +2732,72 @@ function tournamentMatches(tid) {
 }
 function tournamentName(tid) { return State.tournaments.find(x => x.id === tid)?.name || ""; }
 
+/** The primary deck of a tournament = the deck used in the most of its matches. */
+function tournamentPrimaryDeckId(tr) {
+  if (tr.snapshotDeckId && State.decks.find(d => d.id === tr.snapshotDeckId)) return tr.snapshotDeckId;
+  const ms = tournamentMatches(tr.id);
+  if (!ms.length) return null;
+  const counts = {};
+  ms.forEach(m => { if (m.deckId) counts[m.deckId] = (counts[m.deckId] || 0) + 1; });
+  let best = null, bestN = 0;
+  for (const id in counts) if (counts[id] > bestN) { best = id; bestN = counts[id]; }
+  return best;
+}
+
+/**
+ * Open the decklist the player used at this tournament. We FREEZE a snapshot
+ * of the deck's list onto the tournament the first time it's viewed, so later
+ * edits to the deck don't change what this event shows. A "refresh" option in
+ * the viewer lets the user re-snapshot from the current deck if they want.
+ */
+function viewTournamentDecklist(tid) {
+  const tr = State.tournaments.find(x => x.id === tid);
+  if (!tr) return;
+  // Ensure we have a frozen snapshot; create one from the primary deck if absent.
+  if (!tr.decklistSnapshot) {
+    const pid = tournamentPrimaryDeckId(tr);
+    const deck = pid && State.decks.find(d => d.id === pid);
+    if (!deck || !deck.decklist) { toast("No decklist available to show.", "error"); return; }
+    tr.decklistSnapshot = deck.decklist;
+    tr.snapshotDeckId = deck.id;
+    tr.snapshotDeckName = deck.name;
+    tr.snapshotDate = todayISO();
+    tr.snapshotOverrides = deck.overrides ? { ...deck.overrides } : null;
+    save();
+  }
+  // Build a temporary deck-like object so we reuse the existing card-grid viewer.
+  const frozen = {
+    id: "__tourney_" + tr.id,
+    name: `${tr.snapshotDeckName || tournamentName(tid)} — ${tr.name}`,
+    created: tr.snapshotDate || tr.date,
+    decklist: tr.decklistSnapshot,
+    overrides: tr.snapshotOverrides || null,
+    _frozenTournamentId: tr.id,
+  };
+  // Stash it so the viewer (and JPG export) can find it by id.
+  _frozenDeckCache[frozen.id] = frozen;
+  viewDecklist(frozen.id);
+}
+/** Holds temporary frozen-deck objects for the decklist viewer. */
+let _frozenDeckCache = {};
+
+/** Re-snapshot a tournament's decklist from its primary deck's CURRENT list. */
+function refreshTournamentSnapshot(tid) {
+  const tr = State.tournaments.find(x => x.id === tid);
+  if (!tr) return;
+  const pid = tr.snapshotDeckId || tournamentPrimaryDeckId(tr);
+  const deck = pid && State.decks.find(d => d.id === pid);
+  if (!deck || !deck.decklist) { toast("That deck no longer has a decklist to copy.", "error"); return; }
+  tr.decklistSnapshot = deck.decklist;
+  tr.snapshotDeckId = deck.id;
+  tr.snapshotDeckName = deck.name;
+  tr.snapshotDate = todayISO();
+  tr.snapshotOverrides = deck.overrides ? { ...deck.overrides } : null;
+  save();
+  closeModal();
+  toast("Decklist snapshot updated.", "success");
+}
+
 function renderTournaments() {
   const el = $("#page-tournaments");
   const head = `<div class="section-head" style="margin-top:0">
@@ -2732,6 +2819,8 @@ function renderTournaments() {
     const ms = tournamentMatches(tr.id);
     const s = tally(ms);
     const decksUsed = [...new Set(ms.map(m => m.deckId))].map(deckName).filter(Boolean);
+    const primaryDeckId = tournamentPrimaryDeckId(tr);
+    const hasList = !!(tr.decklistSnapshot || (primaryDeckId && State.decks.find(d => d.id === primaryDeckId)?.decklist));
     return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
       <div class="top">
         <div style="max-width:72%">
@@ -2743,7 +2832,10 @@ function renderTournaments() {
       <div class="deck-stats">
         <div class="deck-stat"><div class="k">${t("Record")}</div><div class="v">${s.record}</div></div>
         <div class="deck-stat"><div class="k">${t("Win %")}</div><div class="v" style="color:${wrColor(s.wr)}">${s.wr}%</div></div>
-        <div class="deck-stat" style="grid-column:span 2"><div class="k">${t("Deck")}</div><div class="v" style="font-size:13px">${decksUsed.length ? esc(decksUsed.join(", ")) : "—"}</div></div>
+        <div class="deck-stat tourney-deck-box ${hasList ? "clickable" : ""}" style="grid-column:span 2" ${hasList ? `onclick="viewTournamentDecklist('${tr.id}')" title="${t("View the decklist used")}"` : ""}>
+          <div class="k">${t("Deck")}${hasList ? ` <span class="deck-view-hint">${t("· view list")}</span>` : ""}</div>
+          <div class="v" style="font-size:13px">${decksUsed.length ? esc(decksUsed.join(", ")) : "—"}</div>
+        </div>
       </div>
       ${tr.notes ? `<p style="font-size:12.5px;color:var(--txt-1);margin-top:12px;line-height:1.5;background:var(--bg-2);border-radius:10px;padding:10px 12px;border:1px solid var(--stroke)">${esc(tr.notes)}</p>` : ""}
       <div class="actions">
