@@ -28,6 +28,14 @@
    ===================================================================== */
 window.SUPABASE_URL = "https://mcajewuhmpncxnmrkqzv.supabase.co";   // e.g. "https://abcdefgh.supabase.co"
 window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jYWpld3VobXBuY3hubXJrcXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwOTU4MDgsImV4cCI6MjA5NTY3MTgwOH0.Yt3OIKZozRBOTHU8M2pCTfo1ALeL_1UyVgb_JCkCSe8";   // e.g. "sb_publishable_xxx..."  or legacy anon key
+
+/* OPTIONAL ACCESS WHITELIST (soft gate)
+   Leave the array empty [] to allow anyone with a valid login.
+   To restrict access, list the allowed account emails (lower-case), e.g.:
+     window.ALLOWED_EMAILS = ["me@example.com", "friend@example.com"];
+   NOTE: this is visible in the page source, so it's a friendly gate, not
+   real security. For real enforcement, control sign-ups in Supabase. */
+window.ALLOWED_EMAILS = [];
 </script>
 
 <!-- Fonts: distinctive display + clean body -->
@@ -930,6 +938,7 @@ const I18N = {
     "Data imported successfully.": "Datos importados correctamente.",
     "Building deck image…": "Generando imagen…", "Deck image saved as JPG.": "Imagen guardada como JPG.",
     "Running in local-only mode.": "Modo solo local.",
+    "This account isn't approved for access. Contact the owner.": "Esta cuenta no está autorizada. Contacta al propietario.",
     "Synced to cloud.": "Sincronizado.", "Sync failed.": "Falló la sincronización.",
     "Sign in": "Iniciar sesión",
     "🧪 Consistency Analysis": "🧪 Análisis de consistencia",
@@ -1159,8 +1168,26 @@ function useLocalOnly() {
   toast("Running in local-only mode.", "info");
 }
 
+/** Whether an email is allowed in (empty whitelist = everyone allowed). */
+function isEmailAllowed(email) {
+  const list = (window.ALLOWED_EMAILS || []).map(e => String(e).trim().toLowerCase()).filter(Boolean);
+  if (!list.length) return true;                       // no whitelist configured
+  return list.includes(String(email || "").trim().toLowerCase());
+}
+
 /** Called once a user is authenticated: pull cloud data then start app. */
 async function onSignedIn(user) {
+  // Soft access gate: if a whitelist is configured and this email isn't on it,
+  // refuse entry and sign back out.
+  if (!isEmailAllowed(user.email)) {
+    try { await Cloud.client?.auth.signOut(); } catch {}
+    Cloud.user = null;
+    showAuth(true);
+    const sub = $("#authSub");
+    if (sub) { sub.textContent = t("This account isn't approved for access. Contact the owner."); sub.style.color = "var(--loss)"; }
+    toast("Access not approved for this account.", "error");
+    return;
+  }
   Cloud.user = user;
   showAuth(false);
   $("#accountBox").style.display = "block";
@@ -3762,10 +3789,9 @@ function storeTotals(store) {
   (store.entries || []).forEach(e => { if (e.kind === "spend") spent += e.amount; else earned += e.amount; });
   return { earned, spent, balance: earned - spent };
 }
-/** The Pokémon Dollar symbol — a "P" with a double bar. No reliable Unicode
-   character exists for it, so we draw it as a small inline SVG that renders
-   identically everywhere. Sized to sit inline with the number. */
-const POKEDOLLAR_SVG = `<svg viewBox="0 0 24 24" width="0.92em" height="0.92em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-0.08em;margin-right:1px"><path d="M8 20V4h6a4 4 0 010 8H8"/><path d="M5 10h9"/><path d="M5 14h9"/></svg>`;
+/** Store-credit currency icon — a small coin, drawn as an inline SVG so it
+   renders identically everywhere and sits next to the number. */
+const POKEDOLLAR_SVG = `<svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.13em;margin-right:2px"><circle cx="12" cy="12" r="9" fill="#f0b429" stroke="#b9831a" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="none" stroke="#d99a1f" stroke-width="1.2"/><text x="12" y="16.3" text-anchor="middle" font-size="9" font-weight="700" fill="#7a5410" font-family="Chakra Petch, sans-serif">P</text></svg>`;
 
 /** Format an amount with the Pokédollar glyph in front. */
 function fmtCredit(store, n) {
