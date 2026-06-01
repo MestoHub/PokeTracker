@@ -530,7 +530,7 @@ tbody tr:hover{background:var(--bg-2)}
     </a>
     <a class="nav-item" data-page="decks">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>
-      Decks <span class="badge-count" id="navDeckCount" style="margin-left:auto">0</span>
+      Decks
     </a>
     <a class="nav-item" data-page="logger">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
@@ -538,7 +538,7 @@ tbody tr:hover{background:var(--bg-2)}
     </a>
     <a class="nav-item" data-page="history">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>
-      Match History <span class="badge-count" id="navMatchCount" style="margin-left:auto">0</span>
+      Match History
     </a>
     <a class="nav-item" data-page="matchups">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 3v18M6 3v18M6 8h12M6 16h12"/><circle cx="12" cy="12" r="2"/></svg>
@@ -546,15 +546,15 @@ tbody tr:hover{background:var(--bg-2)}
     </a>
     <a class="nav-item" data-page="tournaments">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
-      Tournaments <span class="badge-count" id="navTourneyCount" style="margin-left:auto">0</span>
+      Tournaments
     </a>
     <a class="nav-item" data-page="testing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v2l-1 1v3.5l4.5 8a2 2 0 01-1.8 3H7.3a2 2 0 01-1.8-3l4.5-8V6L9 5V3z"/><path d="M8.5 13h7"/></svg>
-      Testing <span class="badge-count" id="navTestCount" style="margin-left:auto">0</span>
+      Testing
     </a>
     <a class="nav-item" data-page="credits">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-      Store Credits <span class="badge-count" id="navStoreCount" style="margin-left:auto">0</span>
+      Store Credits
     </a>
     <a class="nav-item" data-page="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.66.34 1.45-.05 2.09"/></svg>
@@ -1933,8 +1933,8 @@ function renderPage(page) {
 }
 /** Re-render the active page + sidebar counters after any data change. */
 function refreshAll() {
-  $("#navDeckCount").textContent  = State.decks.length;
-  $("#navMatchCount").textContent = State.matches.length;
+  const _nd = $("#navDeckCount"); if (_nd) _nd.textContent = State.decks.length;
+  const _nm = $("#navMatchCount"); if (_nm) _nm.textContent = State.matches.length;
   const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
   const ts = $("#navTestCount"); if (ts) ts.textContent = State.testSessions.length;
   const sc = $("#navStoreCount"); if (sc) sc.textContent = State.stores.length;
@@ -2910,7 +2910,7 @@ function saveMatch(id) {
     State.matches.push({ id: uid(), ...obj });
     toast("Match logged! 🎉", "success"); save();
     renderLogger();            // reset form for rapid entry
-    $("#navMatchCount").textContent = State.matches.length;
+    const _nm = $("#navMatchCount"); if (_nm) _nm.textContent = State.matches.length;
   }
 }
 function editMatch(id) { navigate("logger"); renderLogger(id);
@@ -3650,7 +3650,13 @@ function viewTestSession(id) {
   const ms = testMatches(id);
   const s = tally(ms);
   const cv = currentVersion(ts);
-  const unlinked = State.matches.filter(m => !m.testSessionId && !m.tournamentId).sort((a, b) => b.date.localeCompare(a.date));
+  // Only offer matches that use this session's deck. A session's deck is its
+  // primary deck (most-used across its matches); for an empty session there's
+  // no deck yet, so allow any deck for the first link — after that it's locked.
+  const sessionDeckId = testPrimaryDeckId(ts);   // null if the session has no matches yet
+  const unlinked = State.matches
+    .filter(m => !m.testSessionId && !m.tournamentId && (!sessionDeckId || m.deckId === sessionDeckId))
+    .sort((a, b) => b.date.localeCompare(a.date));
   const verLabel = (vid) => { const v = ts.versions.find(x => x.id === vid); return v ? "V" + v.n : "—"; };
 
   // Per-version breakdown: record + win% + reason for each version.
@@ -4375,8 +4381,8 @@ function startApp() {
   applyTheme();
   applyStaticI18n();
   const b = $("#langToggle"); if (b) b.textContent = lang() === "en" ? "ES" : "EN";
-  $("#navDeckCount").textContent  = State.decks.length;
-  $("#navMatchCount").textContent = State.matches.length;
+  const _nd = $("#navDeckCount"); if (_nd) _nd.textContent = State.decks.length;
+  const _nm = $("#navMatchCount"); if (_nm) _nm.textContent = State.matches.length;
   const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
   const ts = $("#navTestCount"); if (ts) ts.textContent = State.testSessions.length;
   const sc = $("#navStoreCount"); if (sc) sc.textContent = State.stores.length;
