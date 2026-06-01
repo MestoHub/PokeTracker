@@ -287,6 +287,8 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 .note-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);font-weight:700}
 .note-block p{font-size:13px;color:var(--txt-1);line-height:1.55;white-space:pre-wrap;margin:0}
 .btn-icon.note-open{background:var(--grad-accent);color:#fff;border-color:transparent}
+.test-note-row td{padding:0}
+.test-note-inner{display:flex;flex-direction:column;gap:10px;background:var(--bg-2);border:1px solid var(--stroke);border-radius:10px;padding:12px 14px;margin:2px 0 8px}
 .consistency{position:relative}
 .dl-tab.active{background:var(--grad-accent);color:#fff;border-color:transparent}
 /* ---- Limitless-style visual card grid ---- */
@@ -939,6 +941,7 @@ const I18N = {
     "Building deck image…": "Generando imagen…", "Deck image saved as JPG.": "Imagen guardada como JPG.",
     "Running in local-only mode.": "Modo solo local.",
     "This account isn't approved for access. Contact the owner.": "Esta cuenta no está autorizada. Contacta al propietario.",
+    "View notes": "Ver notas",
     "Synced to cloud.": "Sincronizado.", "Sync failed.": "Falló la sincronización.",
     "Sign in": "Iniciar sesión",
     "🧪 Consistency Analysis": "🧪 Análisis de consistencia",
@@ -3611,6 +3614,18 @@ function viewTestSession(id) {
   const rows = ms.map((m, i) => {
     const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
     const label = isWin(m) ? t("Win") : isLoss(m) ? t("Loss") : t("Draw");
+    const hasNotes = (m.notes && m.notes.trim()) || (m.extraNotes && m.extraNotes.trim());
+    const noteBtn = hasNotes
+      ? `<button class="btn btn-ghost btn-icon btn-sm" title="${t("View notes")}" onclick="toggleTestNote('${m.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>`
+      : "";
+    const detailRow = hasNotes
+      ? `<tr id="tnote-${m.id}" class="test-note-row" style="display:none"><td colspan="8">
+          <div class="test-note-inner">
+            ${m.notes && m.notes.trim() ? `<div class="note-block"><span class="note-label">📝 ${t("Notes")}</span><p>${esc(m.notes)}</p></div>` : ""}
+            ${m.extraNotes && m.extraNotes.trim() ? `<div class="note-block"><span class="note-label">📌 ${t("Extra Match Info")}</span><p>${esc(m.extraNotes)}</p></div>` : ""}
+          </div></td></tr>`
+      : "";
     return `<tr>
       <td style="color:var(--txt-2)">#${i + 1}</td>
       <td><span class="pill muted" title="${t("Decklist version")}">${verLabel(m.testVersionId)}</span></td>
@@ -3619,9 +3634,12 @@ function viewTestSession(id) {
       <td>${m.position === "First" ? t("1st") : t("2nd")}</td>
       <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
       <td>${m.bricked ? `<span class="pill loss">${t("🧱 Brick")}</span>` : ""}</td>
-      <td><button class="btn btn-ghost btn-icon btn-sm" title="${t("Unlink")}" onclick="unlinkTestMatch('${m.id}','${id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M18.84 12.25l1.72-1.71a4 4 0 00-5.66-5.66l-1.71 1.72M5.17 11.75l-1.72 1.71a4 4 0 005.66 5.66l1.71-1.72M8 12h8"/></svg></button></td>
-    </tr>`;
+      <td><div style="display:flex;gap:4px;justify-content:flex-end">
+        ${noteBtn}
+        <button class="btn btn-ghost btn-icon btn-sm" title="${t("Unlink")}" onclick="unlinkTestMatch('${m.id}','${id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M18.84 12.25l1.72-1.71a4 4 0 00-5.66-5.66l-1.71 1.72M5.17 11.75l-1.72 1.71a4 4 0 005.66 5.66l1.71-1.72M8 12h8"/></svg></button>
+      </div></td>
+    </tr>${detailRow}`;
   }).join("");
 
   openModal(`
@@ -3771,6 +3789,11 @@ function linkSelectedTestMatch(sid) {
 function unlinkTestMatch(mid, sid) {
   const m = State.matches.find(x => x.id === mid);
   if (m) { delete m.testSessionId; save(); toast("Match unlinked.", "info"); viewTestSession(sid); refreshAll(); }
+}
+/** Expand/collapse a testing match's notes row inside the session modal. */
+function toggleTestNote(mid) {
+  const row = document.getElementById("tnote-" + mid);
+  if (row) row.style.display = row.style.display === "none" ? "" : "none";
 }
 
 /* ------------------------------------------------------------------ */
