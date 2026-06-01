@@ -252,6 +252,13 @@ input,select,textarea{font-family:inherit}
 tbody tr.selected{background:rgba(91,140,255,.12)}
 /* consistency strip on deck cards */
 .consistency-strip{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ct-split{display:flex;gap:9px;margin-top:14px}
+.ct-box{flex:1;border-radius:11px;padding:10px 12px;border:1px solid var(--stroke);background:var(--bg-2)}
+.ct-comp{border-left:3px solid var(--accent)}
+.ct-test{border-left:3px solid var(--accent-2)}
+.ct-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--txt-2);font-weight:600}
+.ct-rec{font-family:'Chakra Petch';font-size:18px;font-weight:700;margin-top:3px}
+.ct-wr{font-size:12px;font-weight:600;margin-top:1px}
 .cs-item{flex:1;min-width:90px;background:var(--bg-2);border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
 .cs-item .cs-k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-2)}
 .cs-item b{font-family:'Chakra Petch';font-size:15px}
@@ -355,7 +362,7 @@ select.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xm
 
 /* ---------- 6. TABLES ---------- */
 .table-wrap{overflow-x:auto;border-radius:var(--radius)}
-table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:840px}
 thead th{
   text-align:left;padding:13px 14px;font-size:11px;text-transform:uppercase;
   letter-spacing:.8px;color:var(--txt-2);font-weight:700;
@@ -513,6 +520,10 @@ tbody tr:hover{background:var(--bg-2)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
       Tournaments <span class="badge-count" id="navTourneyCount" style="margin-left:auto">0</span>
     </a>
+    <a class="nav-item" data-page="testing">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v2l-1 1v3.5l4.5 8a2 2 0 01-1.8 3H7.3a2 2 0 01-1.8-3l4.5-8V6L9 5V3z"/><path d="M8.5 13h7"/></svg>
+      Testing <span class="badge-count" id="navTestCount" style="margin-left:auto">0</span>
+    </a>
     <a class="nav-item" data-page="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.66.34 1.45-.05 2.09"/></svg>
       Settings
@@ -565,6 +576,8 @@ tbody tr:hover{background:var(--bg-2)}
     <section class="page" id="page-history"></section>
     <!-- ====== PAGE: TOURNAMENTS ====== -->
     <section class="page" id="page-tournaments"></section>
+    <!-- ====== PAGE: TESTING ====== -->
+    <section class="page" id="page-testing"></section>
     <!-- ====== PAGE: SETTINGS ====== -->
     <section class="page" id="page-settings"></section>
   </main>
@@ -623,6 +636,25 @@ const I18N = {
     "Your events, grouped run by run": "Tus eventos, agrupados por participación",
     "Your Tournaments": "Tus torneos",
     "New Tournament": "Nuevo torneo",
+    "Testing": "Pruebas",
+    "Competitive": "Competitivo",
+    "Match Category": "Categoría de partida",
+    "Your Testing Sessions": "Tus sesiones de prueba",
+    "New Session": "Nueva sesión",
+    "Create Session": "Crear sesión",
+    "Edit Session": "Editar sesión",
+    "Session Name": "Nombre de la sesión",
+    "Testing Session": "Sesión de prueba",
+    "Testing matches are kept separate and never affect your competitive win rates.": "Las partidas de prueba se mantienen aparte y nunca afectan tus estadísticas competitivas.",
+    "Group your practice games — these stay out of your competitive stats.": "Agrupa tus partidas de práctica — no cuentan en tus estadísticas competitivas.",
+    "What you're testing, hypotheses, changes to try...": "Qué estás probando, hipótesis, cambios a probar...",
+    "e.g. Pre-Regional testing": "ej. Pruebas pre-Regional",
+    "Create a new session": "Crear una sesión nueva",
+    "Linking a match here marks it as Testing.": "Vincular una partida aquí la marca como Prueba.",
+    "This removes the testing session.": "Esto elimina la sesión de prueba.",
+    "Splits above are competitive games.": "Los desgloses de arriba son partidas competitivas.",
+    "WR": "% V",
+    "Category": "Categoría",
     "View the decklist used": "Ver la lista usada",
     "· view list": "· ver lista",
     "Decklist used at this event": "Lista usada en este evento",
@@ -851,7 +883,7 @@ function toggleLang() {
 /** Apply translations to the static (non-rendered) HTML: nav + footer. */
 function applyStaticI18n() {
   // nav labels (preserve any trailing count badge element)
-  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", settings: "Settings" };
+  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", testing: "Testing", settings: "Settings" };
   $$(".nav-item").forEach(n => {
     const page = n.dataset.page, label = navMap[page];
     // first text node holds the label
@@ -883,7 +915,7 @@ function isWinResult(r) { return r === "Win" || r === "Match Win"; }
 /* ------------------------------------------------------------------ */
 /* 1. STATE & PERSISTENCE                                             */
 /* ------------------------------------------------------------------ */
-let State = { decks: [], matches: [], tournaments: [], settings: { theme: "dark" } };
+let State = { decks: [], matches: [], tournaments: [], testSessions: [], settings: { theme: "dark" } };
 
 /** Load state from LocalStorage (for the current user/local key). */
 function loadLocal() {
@@ -899,12 +931,19 @@ function loadLocal() {
 }
 /** Validate/normalise an incoming State object. */
 function normaliseState(obj) {
-  return {
-    decks:       Array.isArray(obj?.decks)       ? obj.decks       : [],
-    matches:     Array.isArray(obj?.matches)     ? obj.matches     : [],
-    tournaments: Array.isArray(obj?.tournaments) ? obj.tournaments : [],
+  const st = {
+    decks:        Array.isArray(obj?.decks)        ? obj.decks        : [],
+    matches:      Array.isArray(obj?.matches)      ? obj.matches      : [],
+    tournaments:  Array.isArray(obj?.tournaments)  ? obj.tournaments  : [],
+    testSessions: Array.isArray(obj?.testSessions) ? obj.testSessions : [],
     settings: (obj?.settings && typeof obj.settings === "object") ? obj.settings : { theme: "dark" },
   };
+  // Back-compat: matches saved before the category field default to Competitive
+  // (unless they're attached to a testing session).
+  st.matches.forEach(m => {
+    if (!m.category) m.category = m.testSessionId ? "Testing" : "Competitive";
+  });
+  return st;
 }
 /** Write to LocalStorage only (no cloud push) — used during reconciliation. */
 function saveLocalOnly() {
@@ -1517,10 +1556,10 @@ Energy: 13
       id: uid(), deckId: deck.id,
       date: new Date(Date.now() - day * 864e5).toISOString().slice(0, 10),
       opponent: opps[Math.floor(Math.random() * opps.length)],
-      event: events[Math.floor(Math.random() * events.length)],
       notes: "",
       extraNotes: bricked ? "Bricked early — couldn't get an attacker online." : sampleNotes[Math.floor(Math.random() * sampleNotes.length)],
       bricked,
+      category: "Competitive",
       format: bo3 ? "BO3" : "BO1",
       position: first ? "First" : "Second",
       type: online ? "Online" : "In Person",
@@ -1543,6 +1582,33 @@ Energy: 13
   inPerson.slice(-8).forEach(m => m.tournamentId = regional.id);
   inPerson.slice(-12, -8).forEach(m => m.tournamentId = weekly.id);
 
+  // --- seed a testing session with some practice games (kept out of competitive stats) ---
+  const testSession = {
+    id: uid(), name: "Pre-Regional Testing", date: new Date(Date.now() - 11 * 864e5).toISOString().slice(0, 10),
+    notes: "Goldfishing the Charizard list and testing the Gardevoir matchup. Trying 2 Counter Catcher over 1 Boss."
+  };
+  State.testSessions = [testSession];
+  // create ~10 dedicated testing matches (NOT counted in competitive numbers)
+  const testDeck = State.decks[0];
+  for (let i = 0; i < 10; i++) {
+    const first = Math.random() > 0.5, bo3 = Math.random() > 0.5;
+    const win = Math.random() < 0.58;
+    matches.push({
+      id: uid(), deckId: testDeck.id,
+      date: new Date(Date.now() - (12 - Math.floor(i / 2)) * 864e5).toISOString().slice(0, 10),
+      opponent: opps[Math.floor(Math.random() * opps.length)],
+      notes: "", extraNotes: "Practice game.",
+      bricked: Math.random() < 0.12,
+      category: "Testing", testSessionId: testSession.id,
+      format: bo3 ? "BO3" : "BO1",
+      position: first ? "First" : "Second",
+      type: "Online",
+      result: bo3 ? (win ? "Match Win" : "Match Loss") : (win ? "Win" : "Loss"),
+      score: bo3 ? (win ? "2-1" : "1-2") : ""
+    });
+  }
+  State.matches = matches;
+
   State.settings = { theme: "dark" };
   save();
 }
@@ -1558,6 +1624,15 @@ function tally(list) {
   return { total: list.length, w, l, d: dr, wr: pct(w, decisive), record: `${w}-${l}-${dr}` };
 }
 const by = (list, fn) => list.filter(fn);
+
+/* Match category helpers. A match is "Testing" if explicitly tagged or linked
+   to a testing session; otherwise "Competitive". The dashboard and deck
+   rankings use Competitive only, so practice games never skew real win rates. */
+function matchCategory(m) { return m.category || (m.testSessionId ? "Testing" : "Competitive"); }
+function isTesting(m) { return matchCategory(m) === "Testing"; }
+function isComp(m)    { return matchCategory(m) === "Competitive"; }
+const competitiveMatches = () => State.matches.filter(isComp);
+const testingMatches     = () => State.matches.filter(isTesting);
 
 /** Global dashboard statistics object. */
 /** Dashboard stats over an optional match subset (defaults to all matches). */
@@ -1579,14 +1654,21 @@ function globalStats(matchList) {
 
 /** Current dashboard scope: "" = all decks, or a deckId. */
 let dashFilter = "";
-/** The match list the dashboard is currently scoped to. */
+/** The match list the dashboard is scoped to — COMPETITIVE ONLY, optional deck. */
 function dashMatches() {
-  return dashFilter ? by(State.matches, m => m.deckId === dashFilter) : State.matches;
+  const comp = competitiveMatches();
+  return dashFilter ? by(comp, m => m.deckId === dashFilter) : comp;
 }
 
-/** Per-deck analytics for a single deck. */
-function deckStats(deckId) {
-  const M = by(State.matches, m => m.deckId === deckId);
+/**
+ * Per-deck analytics for a single deck.
+ * @param {string} deckId
+ * @param {string} [category]  "Competitive" | "Testing" | undefined (=all)
+ */
+function deckStats(deckId, category) {
+  let M = by(State.matches, m => m.deckId === deckId);
+  if (category === "Competitive") M = M.filter(isComp);
+  else if (category === "Testing") M = M.filter(isTesting);
   const t = tally(M);
   const bricked = M.filter(m => m.bricked).length;
   return {
@@ -1602,14 +1684,20 @@ function deckStats(deckId) {
   };
 }
 
-/** All decks ranked by win % (decisive games), then volume. */
+/** All decks ranked by COMPETITIVE win % (matching the dashboard), then volume. */
 function rankedDecks() {
   return State.decks
-    .map(d => ({ deck: d, s: deckStats(d.id) }))
+    .map(d => ({ deck: d, s: deckStats(d.id, "Competitive") }))
     .sort((a, b) => (b.s.wr - a.s.wr) || (b.s.total - a.s.total));
 }
 
 const deckName = (id) => State.decks.find(d => d.id === id)?.name || "— deleted deck —";
+/** The Event column label: the linked tournament's name, or testing session, else "". */
+function eventLabel(m) {
+  if (m.tournamentId) return tournamentName(m.tournamentId);
+  if (m.testSessionId) return testSessionName(m.testSessionId);
+  return "";
+}
 /** Find a deck by id, including temporary frozen tournament-decklist objects. */
 function findDeck(id) {
   if (typeof _frozenDeckCache !== "undefined" && _frozenDeckCache[id]) return _frozenDeckCache[id];
@@ -1643,6 +1731,7 @@ const PAGE_META = {
   logger:    ["Log a Match", "Record a new game result"],
   history:   ["Match History", "Search, filter, and edit past matches"],
   tournaments: ["Tournaments", "Your events, grouped run by run"],
+  testing:   ["Testing", "Practice sessions — kept out of your competitive stats"],
   settings:  ["Settings", "Backup, import, export, and reset your data"],
 };
 let currentPage = "dashboard";
@@ -1661,13 +1750,14 @@ function navigate(page) {
 }
 function renderPage(page) {
   ({ dashboard: renderDashboard, decks: renderDecks, logger: renderLogger,
-     history: renderHistory, tournaments: renderTournaments, settings: renderSettings }[page] || (() => {}))();
+     history: renderHistory, tournaments: renderTournaments, testing: renderTesting, settings: renderSettings }[page] || (() => {}))();
 }
 /** Re-render the active page + sidebar counters after any data change. */
 function refreshAll() {
   $("#navDeckCount").textContent  = State.decks.length;
   $("#navMatchCount").textContent = State.matches.length;
   const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
+  const ts = $("#navTestCount"); if (ts) ts.textContent = State.testSessions.length;
   renderPage(currentPage);
 }
 
@@ -1905,7 +1995,8 @@ function renderDecks() {
   }
 
   el.innerHTML = head + `<div class="grid deck-grid">${ranked.map((r, i) => {
-    const s = r.s, d = r.deck;
+    const s = r.s, d = r.deck;                       // s = competitive stats
+    const ts = deckStats(d.id, "Testing");            // testing stats
     const rep = consistencyReport(parseDecklist(d.decklist), d.overrides || {});
     const hasList = rep.total > 0;
     return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
@@ -1918,14 +2009,28 @@ function renderDecks() {
         <div class="wr-badge" style="color:${wrColor(s.wr)}">${s.wr}%</div>
       </div>
       <div class="deck-rank-bar"><i style="width:${s.wr}%"></i></div>
+
+      <!-- competitive vs testing split -->
+      <div class="ct-split">
+        <div class="ct-box ct-comp">
+          <div class="ct-head">🏅 ${t("Competitive")}</div>
+          <div class="ct-rec">${s.record}</div>
+          <div class="ct-wr" style="color:${wrColor(s.wr)}">${s.wr}% ${t("WR")}</div>
+        </div>
+        <div class="ct-box ct-test">
+          <div class="ct-head">🧪 ${t("Testing")}</div>
+          <div class="ct-rec">${ts.record}</div>
+          <div class="ct-wr" style="color:${wrColor(ts.wr)}">${ts.wr}% ${t("WR")}</div>
+        </div>
+      </div>
+
       <div class="deck-stats">
-        <div class="deck-stat"><div class="k">${t("Matches")}</div><div class="v">${s.total}</div></div>
-        <div class="deck-stat"><div class="k">${t("Record")}</div><div class="v">${s.record}</div></div>
         <div class="deck-stat"><div class="k">BO1</div><div class="v">${s.bo1.record} · ${s.bo1.wr}%</div></div>
         <div class="deck-stat"><div class="k">BO3</div><div class="v">${s.bo3.record} · ${s.bo3.wr}%</div></div>
         <div class="deck-stat"><div class="k">${t("Online")}</div><div class="v">${s.online.record} · ${s.online.wr}%</div></div>
         <div class="deck-stat"><div class="k">${t("In Person")}</div><div class="v">${s.inperson.record} · ${s.inperson.wr}%</div></div>
       </div>
+      <div style="font-size:10.5px;color:var(--txt-2);margin-top:8px;text-align:center">${t("Splits above are competitive games.")}</div>
 
       <!-- consistency strip: theoretical (from list) + actual (from logged matches) -->
       <div class="consistency-strip">
@@ -2401,16 +2506,35 @@ function renderLogger(editId) {
         <input class="input" type="date" id="mDate" value="${m ? m.date : todayISO()}"></div>
       <div class="field"><label>${t("Opponent Deck")}</label>
         <input class="input" id="mOpp" placeholder="e.g. Gardevoir ex" value="${m ? esc(m.opponent) : ""}"></div>
-      <div class="field"><label>${t("Event")} <span class="opt">${t("(optional)")}</span></label>
-        <input class="input" id="mEvent" placeholder="e.g. Regional Championship" value="${m ? esc(m.event) : ""}"></div>
-      <div class="field"><label>${t("Tournament")} <span class="opt">${t("(optional)")}</span></label>
-        <div style="display:flex;gap:8px">
-          <select class="select" id="mTournament" style="flex:1">
-            <option value="">${t("— none —")}</option>
-            ${[...State.tournaments].sort((a,b)=>b.date.localeCompare(a.date)).map(tr => `<option value="${tr.id}" ${m && m.tournamentId === tr.id ? "selected" : ""}>${esc(tr.name)} · ${fmtDate(tr.date)}</option>`).join("")}
-          </select>
-          <button type="button" class="btn btn-ghost" style="white-space:nowrap" onclick="quickCreateTournament()" title="${t("Create a new tournament")}">+ ${t("New")}</button>
+      <div class="field"><label>${t("Match Category")}</label>
+        <div class="seg" id="mCategory">
+          <label><input type="radio" name="cat" value="Competitive" onchange="syncCategoryUI()" ${m && matchCategory(m)==="Competitive" ? "checked" : ""}><span>🏅 ${t("Competitive")}</span></label>
+          <label><input type="radio" name="cat" value="Testing" onchange="syncCategoryUI()" ${m && matchCategory(m)==="Testing" ? "checked" : ""}><span>🧪 ${t("Testing")}</span></label>
         </div></div>
+    </div>
+
+    <!-- Tournament link (shown for Competitive) -->
+    <div class="field" id="tournamentField" style="margin-top:16px;max-width:520px;display:none">
+      <label>${t("Tournament")} <span class="opt">${t("(optional)")}</span></label>
+      <div style="display:flex;gap:8px">
+        <select class="select" id="mTournament" style="flex:1">
+          <option value="">${t("— none —")}</option>
+          ${[...State.tournaments].sort((a,b)=>b.date.localeCompare(a.date)).map(tr => `<option value="${tr.id}" ${m && m.tournamentId === tr.id ? "selected" : ""}>${esc(tr.name)} · ${fmtDate(tr.date)}</option>`).join("")}
+        </select>
+        <button type="button" class="btn btn-ghost" style="white-space:nowrap" onclick="quickCreateTournament()" title="${t("Create a new tournament")}">+ ${t("New")}</button>
+      </div>
+    </div>
+
+    <!-- Testing session link (shown for Testing) -->
+    <div class="field" id="testField" style="margin-top:16px;max-width:520px;display:none">
+      <label>${t("Testing Session")} <span class="opt">${t("(optional)")}</span></label>
+      <div style="display:flex;gap:8px">
+        <select class="select" id="mTestSession" style="flex:1" onchange="syncCategoryFromLinks()">
+          <option value="">${t("— none —")}</option>
+          ${[...State.testSessions].sort((a,b)=>b.date.localeCompare(a.date)).map(ts => `<option value="${ts.id}" ${m && m.testSessionId === ts.id ? "selected" : ""}>${esc(ts.name)} · ${fmtDate(ts.date)}</option>`).join("")}
+        </select>
+        <button type="button" class="btn btn-ghost" style="white-space:nowrap" onclick="quickCreateTestSession()" title="${t("Create a new session")}">+ ${t("New")}</button>
+      </div>
     </div>
 
     <div class="form-grid" style="margin-top:18px">
@@ -2466,6 +2590,22 @@ function renderLogger(editId) {
 
   syncResultOptions(m ? m.result : null, m ? m.score : "");
   updateDeckSprite();
+  syncCategoryUI();
+}
+
+/** Show the tournament field for Competitive, the testing-session field for Testing. */
+function syncCategoryUI() {
+  const cat = $('input[name="cat"]:checked')?.value;   // may be undefined (no default)
+  const tf = $("#tournamentField"), sf = $("#testField");
+  if (tf) tf.style.display = cat === "Competitive" ? "" : "none";
+  if (sf) sf.style.display = cat === "Testing" ? "" : "none";
+}
+/** When a session/tournament is chosen, force the matching category radio. */
+function syncCategoryFromLinks() {
+  if ($("#mTestSession") && $("#mTestSession").value) {
+    const r = $('input[name="cat"][value="Testing"]'); if (r) r.checked = true;
+  }
+  syncCategoryUI();
 }
 
 /** Refresh the little sprite shown beside the deck dropdown in the logger. */
@@ -2494,15 +2634,21 @@ function saveMatch(id) {
   const deckId = $("#mDeck").value;
   const date = $("#mDate").value;
   const result = $('input[name="res"]:checked')?.value;
+  const category = $('input[name="cat"]:checked')?.value;
   if (!deckId) { toast("Select a deck.", "error"); return; }
   if (!date) { toast("Pick a date.", "error"); return; }
+  if (!category) { toast("Choose Competitive or Testing.", "error"); return; }
   if (!result) { toast("Select a result.", "error"); return; }
   const format = $('input[name="fmt"]:checked').value;
+  // Links depend on category: Competitive -> tournament; Testing -> session.
+  const tournamentId = category === "Competitive" && $("#mTournament") ? ($("#mTournament").value || undefined) : undefined;
+  const testSessionId = category === "Testing" && $("#mTestSession") ? ($("#mTestSession").value || undefined) : undefined;
   const obj = {
     deckId, date,
     opponent: $("#mOpp").value.trim(),
-    event: $("#mEvent").value.trim(),
-    tournamentId: $("#mTournament") ? ($("#mTournament").value || undefined) : undefined,
+    category,
+    tournamentId,
+    testSessionId,
     notes: $("#mNotes").value.trim(),
     extraNotes: $("#mExtra").value.trim(),
     bricked: $('input[name="brick"]:checked')?.value === "yes",
@@ -2513,7 +2659,10 @@ function saveMatch(id) {
     score: format === "BO3" ? ($("#mScore").value || "") : ""
   };
   if (id) {
-    Object.assign(State.matches.find(x => x.id === id), obj);
+    const existing = State.matches.find(x => x.id === id);
+    // clear the opposite-category link cleanly
+    delete existing.tournamentId; delete existing.testSessionId; delete existing.event;
+    Object.assign(existing, obj);
     toast("Match updated.", "success"); save(); refreshAll(); navigate("history");
   } else {
     State.matches.push({ id: uid(), ...obj });
@@ -2561,6 +2710,7 @@ function renderHistory() {
       <div class="field"><label>${t("Position")}</label><select class="select" id="fPos"><option value="">${t("All")}</option><option value="First">${t("Went First")}</option><option value="Second">${t("Went Second")}</option></select></div>
       <div class="field"><label>${t("Result")}</label><select class="select" id="fResult"><option value="">${t("All")}</option><option value="win">${t("Wins ")}</option><option value="loss">${t("Losses ")}</option><option value="draw">${t("Draws ")}</option></select></div>
       <div class="field"><label>${t("Brick")}</label><select class="select" id="fBrick"><option value="">${t("All")}</option><option value="yes">${t("🧱 Bricked")}</option><option value="no">${t("👍 No brick")}</option></select></div>
+      <div class="field"><label>${t("Category")}</label><select class="select" id="fCategory"><option value="">${t("All")}</option><option value="Competitive">🏅 ${t("Competitive")}</option><option value="Testing">🧪 ${t("Testing")}</option></select></div>
       <div class="field"><label>${t("From date")}</label><input class="input" type="date" id="fFrom"></div>
       <div class="field"><label>${t("To date")}</label><input class="input" type="date" id="fTo"></div>
     </div>
@@ -2583,7 +2733,7 @@ function renderHistory() {
             <th style="width:40px"><button class="chk" id="chkHead" onclick="toggleSelectAll()" title="Select all visible"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></button></th>
             ${th("date", t("Date"))}${th("deck", t("Deck"))}${th("opponent", t("Opponent"))}
             ${th("format", t("Fmt"))}${th("position", t("Pos"))}${th("type", t("Type"))}
-            ${th("result", t("Result"))}<th>${t("Brick")}</th><th>${t("Event")}</th><th></th>
+            ${th("result", t("Result"))}<th>${t("Brick")}</th><th>${t("Category")}</th><th>${t("Event")}</th><th></th>
           </tr></thead>
           <tbody id="histBody"></tbody>
         </table>
@@ -2591,7 +2741,7 @@ function renderHistory() {
       <div id="histEmpty" class="empty" style="display:none"><div class="ico">🔍</div><h3>${t("No matches match your filters")}</h3></div>
     </div>`;
 
-  ["fSearch", "fDeck", "fType", "fFormat", "fPos", "fResult", "fBrick", "fFrom", "fTo"].forEach(id => {
+  ["fSearch", "fDeck", "fType", "fFormat", "fPos", "fResult", "fBrick", "fCategory", "fFrom", "fTo"].forEach(id => {
     const e = $("#" + id); e.addEventListener("input", applyHistory); e.addEventListener("change", applyHistory);
   });
   applyHistory();
@@ -2638,7 +2788,7 @@ function applyHistory() {
   const q = $("#fSearch").value.toLowerCase().trim();
   const fDeck = $("#fDeck").value, fType = $("#fType").value, fFormat = $("#fFormat").value,
         fPos = $("#fPos").value, fResult = $("#fResult").value, fBrick = $("#fBrick").value,
-        fFrom = $("#fFrom").value, fTo = $("#fTo").value;
+        fCategory = $("#fCategory").value, fFrom = $("#fFrom").value, fTo = $("#fTo").value;
 
   let rows = State.matches.filter(m => {
     if (fDeck && m.deckId !== fDeck) return false;
@@ -2650,9 +2800,10 @@ function applyHistory() {
     if (fResult === "draw" && !isDraw(m)) return false;
     if (fBrick === "yes" && !m.bricked) return false;
     if (fBrick === "no" && m.bricked) return false;
+    if (fCategory && matchCategory(m) !== fCategory) return false;
     if (fFrom && m.date < fFrom) return false;
     if (fTo && m.date > fTo) return false;
-    if (q) { const hay = (m.opponent + " " + m.event + " " + deckName(m.deckId)).toLowerCase(); if (!hay.includes(q)) return false; }
+    if (q) { const hay = (m.opponent + " " + eventLabel(m) + " " + deckName(m.deckId)).toLowerCase(); if (!hay.includes(q)) return false; }
     return true;
   });
 
@@ -2675,6 +2826,8 @@ function applyHistory() {
     const on = selected.has(m.id);
     const hasDetail = (m.notes && m.notes.trim()) || (m.extraNotes && m.extraNotes.trim());
     const open = expandedRows.has(m.id);
+    const ev = eventLabel(m);
+    const catPill = isTesting(m) ? `<span class="pill muted" title="${t("Testing")}">🧪 ${t("Testing")}</span>` : `<span class="pill muted" title="${t("Competitive")}">🏅 ${t("Competitive")}</span>`;
     return `<tr class="${on ? "selected" : ""}">
       <td><button class="chk ${on ? "on" : ""}" onclick="toggleRow('${m.id}')" aria-label="Select match">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></button></td>
@@ -2686,7 +2839,8 @@ function applyHistory() {
       <td>${m.type === "Online" ? "🌐" : "🏠"} ${t(m.type)}</td>
       <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
       <td>${m.bricked ? `<span class="pill loss" title="Deck bricked">${t("🧱 Brick")}</span>` : `<span style="color:var(--txt-2)">—</span>`}</td>
-      <td style="color:var(--txt-2)">${esc(m.event) || "—"}</td>
+      <td>${catPill}</td>
+      <td style="color:var(--txt-2)">${ev ? esc(ev) : "—"}</td>
       <td><div class="row-actions">
         ${hasDetail ? `<button class="btn btn-ghost btn-icon btn-sm ${open?'note-open':''}" title="View notes" onclick="toggleExpand('${m.id}')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>` : ""}
@@ -3011,6 +3165,254 @@ function linkSelectedMatch(tid) {
 function unlinkMatch(mid, tid) {
   const m = State.matches.find(x => x.id === mid);
   if (m) { delete m.tournamentId; save(); toast("Match unlinked.", "info"); viewTournament(tid); refreshAll(); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 8b. TESTING SESSIONS (practice — kept OUT of competitive stats)     */
+/* ------------------------------------------------------------------ */
+/** Matches linked to a testing session, oldest first. */
+function testMatches(sid) {
+  return by(State.matches, m => m.testSessionId === sid).sort((a, b) => a.date.localeCompare(b.date) || (a.id < b.id ? -1 : 1));
+}
+function testSessionName(sid) { return State.testSessions.find(x => x.id === sid)?.name || ""; }
+
+/** Primary deck of a testing session = most-used deck across its matches. */
+function testPrimaryDeckId(ts) {
+  if (ts.snapshotDeckId && State.decks.find(d => d.id === ts.snapshotDeckId)) return ts.snapshotDeckId;
+  const ms = testMatches(ts.id);
+  if (!ms.length) return null;
+  const counts = {};
+  ms.forEach(m => { if (m.deckId) counts[m.deckId] = (counts[m.deckId] || 0) + 1; });
+  let best = null, bestN = 0;
+  for (const id in counts) if (counts[id] > bestN) { best = id; bestN = counts[id]; }
+  return best;
+}
+/** Open the (frozen) decklist used in a testing session. */
+function viewTestDecklist(sid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  if (!ts) return;
+  if (!ts.decklistSnapshot) {
+    const pid = testPrimaryDeckId(ts);
+    const deck = pid && State.decks.find(d => d.id === pid);
+    if (!deck || !deck.decklist) { toast("No decklist available to show.", "error"); return; }
+    ts.decklistSnapshot = deck.decklist;
+    ts.snapshotDeckId = deck.id; ts.snapshotDeckName = deck.name;
+    ts.snapshotDate = todayISO(); ts.snapshotOverrides = deck.overrides ? { ...deck.overrides } : null;
+    save();
+  }
+  const frozen = {
+    id: "__test_" + ts.id,
+    name: `${ts.snapshotDeckName || testSessionName(sid)} — ${ts.name}`,
+    created: ts.snapshotDate || ts.date,
+    decklist: ts.decklistSnapshot, overrides: ts.snapshotOverrides || null,
+    _frozenTestId: ts.id,
+  };
+  _frozenDeckCache[frozen.id] = frozen;
+  viewDecklist(frozen.id);
+}
+function refreshTestSnapshot(sid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  if (!ts) return;
+  const pid = ts.snapshotDeckId || testPrimaryDeckId(ts);
+  const deck = pid && State.decks.find(d => d.id === pid);
+  if (!deck || !deck.decklist) { toast("That deck no longer has a decklist to copy.", "error"); return; }
+  ts.decklistSnapshot = deck.decklist; ts.snapshotDeckId = deck.id; ts.snapshotDeckName = deck.name;
+  ts.snapshotDate = todayISO(); ts.snapshotOverrides = deck.overrides ? { ...deck.overrides } : null;
+  save(); closeModal(); toast("Decklist snapshot updated.", "success");
+}
+
+function renderTesting() {
+  const el = $("#page-testing");
+  const head = `<div class="section-head" style="margin-top:0">
+    <h2><span class="dot"></span> ${t("Your Testing Sessions")} <span class="badge-count">${State.testSessions.length}</span></h2>
+    <button class="btn btn-gold" onclick="openTestModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> ${t("New Session")}</button>
+  </div>`;
+
+  // a small banner clarifying these are excluded from competitive stats
+  const note = `<div class="glass" style="padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--txt-1);display:flex;align-items:center;gap:9px">
+    🧪 ${t("Testing matches are kept separate and never affect your competitive win rates.")}</div>`;
+
+  if (State.testSessions.length === 0) {
+    el.innerHTML = head + note + emptyState("🧪", "No testing sessions yet",
+      "Create a session — like 'Pre-Regional testing' — and attach your practice games to it.",
+      `<button class="btn btn-primary" onclick="openTestModal()">${t("Create Session")}</button>`);
+    return;
+  }
+
+  const sorted = [...State.testSessions].sort((a, b) => b.date.localeCompare(a.date));
+  el.innerHTML = head + note + `<div class="grid deck-grid">${sorted.map((ts, i) => {
+    const ms = testMatches(ts.id);
+    const s = tally(ms);
+    const decksUsed = [...new Set(ms.map(m => m.deckId))].map(deckName).filter(Boolean);
+    const primaryDeckId = testPrimaryDeckId(ts);
+    const hasList = !!(ts.decklistSnapshot || (primaryDeckId && State.decks.find(d => d.id === primaryDeckId)?.decklist));
+    return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
+      <div class="top">
+        <div style="max-width:78%">
+          <h3>${esc(ts.name)}</h3>
+          <div class="created">🧪 ${t("Testing")} · ${fmtDate(ts.date)}</div>
+        </div>
+      </div>
+      <div class="deck-stats">
+        <div class="deck-stat"><div class="k">${t("Record")}</div><div class="v">${s.record}</div></div>
+        <div class="deck-stat"><div class="k">${t("Win %")}</div><div class="v" style="color:${wrColor(s.wr)}">${s.wr}%</div></div>
+        <div class="deck-stat tourney-deck-box ${hasList ? "clickable" : ""}" style="grid-column:span 2" ${hasList ? `onclick="viewTestDecklist('${ts.id}')" title="${t("View the decklist used")}"` : ""}>
+          <div class="k">${t("Deck")}${hasList ? ` <span class="deck-view-hint">${t("· view list")}</span>` : ""}</div>
+          <div class="v" style="font-size:13px">${decksUsed.length ? esc(decksUsed.join(", ")) : "—"}</div>
+        </div>
+      </div>
+      ${ts.notes ? `<p style="font-size:12.5px;color:var(--txt-1);margin-top:12px;line-height:1.5;background:var(--bg-2);border-radius:10px;padding:10px 12px;border:1px solid var(--stroke)">${esc(ts.notes)}</p>` : ""}
+      <div class="actions">
+        <button class="btn btn-primary btn-sm" onclick="viewTestSession('${ts.id}')">${t("Open")} (${ms.length})</button>
+        <button class="btn btn-ghost btn-sm" onclick="openTestModal('${ts.id}')">${t("Edit")}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTestSession('${ts.id}')" style="margin-left:auto">${t("Delete")}</button>
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/** Create / edit a testing session. */
+function openTestModal(id) {
+  const ts = id ? State.testSessions.find(x => x.id === id) : null;
+  openModal(`
+    <h2>${ts ? t("Edit Session") : t("New Session")}</h2>
+    <p class="sub">${t("Group your practice games — these stay out of your competitive stats.")}</p>
+    <div class="form-grid">
+      <div class="field"><label>${t("Session Name")}</label>
+        <input class="input" id="tsName" placeholder="${t("e.g. Pre-Regional testing")}" value="${ts ? esc(ts.name) : ""}"></div>
+      <div class="field"><label>${t("Date")}</label>
+        <input class="input" type="date" id="tsDate" value="${ts ? ts.date : todayISO()}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>${t("Notes")} <span class="opt">${t("(optional)")}</span></label>
+      <textarea class="textarea" id="tsNotes" placeholder="${t("What you're testing, hypotheses, changes to try...")}">${ts ? esc(ts.notes || "") : ""}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveTestSession('${ts ? ts.id : ""}')">${ts ? t("Save Changes") : t("Create Session")}</button>
+    </div>`);
+  setTimeout(() => $("#tsName").focus(), 50);
+}
+/** Inline session creator for the Log Match form (mirrors quickCreateTournament). */
+function quickCreateTestSession() {
+  openModal(`
+    <h2>${t("New Session")}</h2>
+    <p class="sub">${t("Create it now and it'll be selected for this match.")}</p>
+    <div class="form-grid">
+      <div class="field"><label>${t("Session Name")}</label>
+        <input class="input" id="qsName" placeholder="${t("e.g. Pre-Regional testing")}"></div>
+      <div class="field"><label>${t("Date")}</label>
+        <input class="input" type="date" id="qsDate" value="${todayISO()}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>${t("Notes")} <span class="opt">${t("(optional)")}</span></label>
+      <textarea class="textarea" id="qsNotes" placeholder="${t("What you're testing, hypotheses, changes to try...")}"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveQuickTestSession()">${t("Create & select")}</button>
+    </div>`);
+  setTimeout(() => $("#qsName").focus(), 50);
+}
+function saveQuickTestSession() {
+  const name = $("#qsName").value.trim();
+  if (!name) { toast("Session name is required.", "error"); return; }
+  const ts = { id: uid(), name, date: $("#qsDate").value || todayISO(), notes: $("#qsNotes").value.trim() };
+  State.testSessions.push(ts);
+  save(); closeModal();
+  const sel = $("#mTestSession");
+  if (sel) {
+    const opt = document.createElement("option");
+    opt.value = ts.id; opt.textContent = `${ts.name} · ${fmtDate(ts.date)}`;
+    sel.insertBefore(opt, sel.options[1] || null);
+    sel.value = ts.id;
+    // selecting a testing session implies the match is Testing
+    syncCategoryFromLinks();
+  }
+  const tc = $("#navTestCount"); if (tc) tc.textContent = State.testSessions.length;
+  toast("Session created.", "success");
+}
+function saveTestSession(id) {
+  const name = $("#tsName").value.trim();
+  if (!name) { toast("Session name is required.", "error"); return; }
+  const obj = { name, date: $("#tsDate").value || todayISO(), notes: $("#tsNotes").value.trim() };
+  if (id) { Object.assign(State.testSessions.find(x => x.id === id), obj); toast("Session updated.", "success"); }
+  else { State.testSessions.push({ id: uid(), ...obj }); toast("Session created.", "success"); }
+  save(); closeModal(); refreshAll();
+}
+function deleteTestSession(id) {
+  const n = by(State.matches, m => m.testSessionId === id).length;
+  confirmModal("Delete Session?",
+    `${t("This removes the testing session.")}${n ? ` ${n} ${t("linked match(es) will be kept but unlinked.")}` : ""}`,
+    () => {
+      State.matches.forEach(m => { if (m.testSessionId === id) delete m.testSessionId; });
+      State.testSessions = State.testSessions.filter(x => x.id !== id);
+      save(); refreshAll(); toast("Session deleted.", "info");
+    });
+}
+/** Open a testing session: match list + summary + link/unlink. */
+function viewTestSession(id) {
+  const ts = State.testSessions.find(x => x.id === id);
+  if (!ts) return;
+  const ms = testMatches(id);
+  const s = tally(ms);
+  // only offer Testing-eligible unlinked matches (not tied to a tournament)
+  const unlinked = State.matches.filter(m => !m.testSessionId && !m.tournamentId).sort((a, b) => b.date.localeCompare(a.date));
+
+  const rows = ms.map((m, i) => {
+    const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
+    const label = isWin(m) ? t("Win") : isLoss(m) ? t("Loss") : t("Draw");
+    return `<tr>
+      <td style="color:var(--txt-2)">#${i + 1}</td>
+      <td><div class="cell-deck">${pokeSprite(deckName(m.deckId),24)}<b>${esc(deckName(m.deckId))}</b></div></td>
+      <td>${t("vs")} ${m.opponent ? `<span class="cell-deck" style="display:inline-flex">${pokeSprite(m.opponent,22)}${esc(m.opponent)}</span>` : "—"}</td>
+      <td><span class="pill muted">${m.format}</span></td>
+      <td>${m.position === "First" ? t("1st") : t("2nd")}</td>
+      <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
+      <td>${m.bricked ? `<span class="pill loss">${t("🧱 Brick")}</span>` : ""}</td>
+      <td><button class="btn btn-ghost btn-icon btn-sm" title="${t("Unlink")}" onclick="unlinkTestMatch('${m.id}','${id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M18.84 12.25l1.72-1.71a4 4 0 00-5.66-5.66l-1.71 1.72M5.17 11.75l-1.72 1.71a4 4 0 005.66 5.66l1.71-1.72M8 12h8"/></svg></button></td>
+    </tr>`;
+  }).join("");
+
+  openModal(`
+    <h2>🧪 ${esc(ts.name)}</h2>
+    <p class="sub">${t("Testing")} · ${fmtDate(ts.date)}</p>
+    <div class="grid stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      ${statCard("Record", s.record, "", "accent")}
+      ${statCard("Win %", s.wr + "%", "", "gold")}
+      ${statCard("Matches", ms.length, "", "accent")}
+    </div>
+    ${ts.notes ? `<div class="note-block" style="margin-bottom:16px"><span class="note-label">📌 ${t("Notes")}</span><p>${esc(ts.notes)}</p></div>` : ""}
+    ${ms.length ? `<div class="table-wrap" style="margin-bottom:8px"><table style="min-width:620px"><tbody>${rows}</tbody></table></div>`
+                : `<div style="text-align:center;color:var(--txt-2);padding:20px">${t("No matches linked yet.")}</div>`}
+
+    <div class="field" style="margin-top:8px">
+      <label>${t("Link an existing match")}</label>
+      <div style="display:flex;gap:8px">
+        <select class="select" id="linkTestSel" style="flex:1">
+          <option value="">${unlinked.length ? t("Choose a match to add…") : t("No unlinked matches available")}</option>
+          ${unlinked.slice(0, 60).map(m => {
+            const r = isWin(m) ? "W" : isLoss(m) ? "L" : "D";
+            return `<option value="${m.id}">${fmtDate(m.date)} · ${esc(deckName(m.deckId))} ${t("vs")} ${esc(m.opponent || "—")} · ${r}</option>`;
+          }).join("")}
+        </select>
+        <button class="btn btn-primary" onclick="linkSelectedTestMatch('${id}')">${t("Add")}</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--txt-2);margin-top:6px">${t("Linking a match here marks it as Testing.")}</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Close")}</button>
+      <button class="btn btn-primary" onclick="openTestModal('${id}')">${t("Edit")}</button>
+    </div>`, true);
+}
+function linkSelectedTestMatch(sid) {
+  const mid = $("#linkTestSel").value;
+  if (!mid) { toast("Choose a match first.", "error"); return; }
+  const m = State.matches.find(x => x.id === mid);
+  if (m) { m.testSessionId = sid; m.category = "Testing"; delete m.tournamentId; save(); toast("Match linked.", "success"); viewTestSession(sid); refreshAll(); }
+}
+function unlinkTestMatch(mid, sid) {
+  const m = State.matches.find(x => x.id === mid);
+  if (m) { delete m.testSessionId; save(); toast("Match unlinked.", "info"); viewTestSession(sid); refreshAll(); }
 }
 
 /* ------------------------------------------------------------------ */
