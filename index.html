@@ -148,7 +148,7 @@ input,select,textarea{font-family:inherit}
   display:flex;align-items:center;gap:13px;
   padding:12px 14px;border-radius:var(--radius-sm);
   color:var(--txt-1);font-weight:500;font-size:14.5px;
-  transition:all .2s ease;position:relative;
+  transition:all .2s ease;position:relative;cursor:pointer;
 }
 .nav-item svg{width:20px;height:20px;flex-shrink:0}
 .nav-item:hover{background:var(--bg-2);color:var(--txt-0);transform:translateX(2px)}
@@ -253,6 +253,16 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 /* consistency strip on deck cards */
 .consistency-strip{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .ct-split{display:flex;gap:9px;margin-top:14px}
+/* testing-session decklist version breakdown */
+.ver-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.ver-item{background:var(--bg-2);border:1px solid var(--stroke);border-radius:11px;padding:11px 13px}
+.ver-current{border-color:var(--accent-2);box-shadow:0 0 0 1px var(--accent-2) inset}
+.ver-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ver-tag{font-family:'Chakra Petch';font-weight:700;font-size:15px;color:var(--txt-0);display:flex;align-items:center;gap:7px}
+.ver-cur-badge{font-family:'Sora';font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;background:var(--accent-2);color:#1a1408;padding:2px 7px;border-radius:6px;font-weight:700}
+.ver-rec{font-size:13px;color:var(--txt-1)}
+.ver-reason{font-size:12px;color:var(--txt-1);margin-top:6px;line-height:1.45;background:var(--bg-1);border-radius:8px;padding:7px 9px;border:1px solid var(--stroke)}
+.ver-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
 .ct-box{flex:1;border-radius:11px;padding:10px 12px;border:1px solid var(--stroke);background:var(--bg-2)}
 .ct-comp{border-left:3px solid var(--accent)}
 .ct-test{border-left:3px solid var(--accent-2)}
@@ -323,8 +333,9 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   padding:11px 18px;border-radius:12px;font-weight:600;font-size:14px;
-  transition:all .2s ease;border:1px solid transparent;white-space:nowrap;
+  transition:all .2s ease;border:1px solid transparent;white-space:nowrap;cursor:pointer;
 }
+.btn:disabled{cursor:not-allowed}
 .btn svg{width:17px;height:17px}
 .btn-primary{background:var(--grad-accent);color:#fff;box-shadow:0 8px 22px rgba(91,140,255,.34)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(91,140,255,.5)}
@@ -524,6 +535,10 @@ tbody tr:hover{background:var(--bg-2)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v2l-1 1v3.5l4.5 8a2 2 0 01-1.8 3H7.3a2 2 0 01-1.8-3l4.5-8V6L9 5V3z"/><path d="M8.5 13h7"/></svg>
       Testing <span class="badge-count" id="navTestCount" style="margin-left:auto">0</span>
     </a>
+    <a class="nav-item" data-page="credits">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Store Credits <span class="badge-count" id="navStoreCount" style="margin-left:auto">0</span>
+    </a>
     <a class="nav-item" data-page="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.66.34 1.45-.05 2.09"/></svg>
       Settings
@@ -578,6 +593,8 @@ tbody tr:hover{background:var(--bg-2)}
     <section class="page" id="page-tournaments"></section>
     <!-- ====== PAGE: TESTING ====== -->
     <section class="page" id="page-testing"></section>
+    <!-- ====== PAGE: STORE CREDITS ====== -->
+    <section class="page" id="page-credits"></section>
     <!-- ====== PAGE: SETTINGS ====== -->
     <section class="page" id="page-settings"></section>
   </main>
@@ -637,6 +654,64 @@ const I18N = {
     "Your Tournaments": "Tus torneos",
     "New Tournament": "Nuevo torneo",
     "Testing": "Pruebas",
+    "Store Credits": "Créditos de tienda",
+    "Your Stores": "Tus tiendas",
+    "Add Store": "Añadir tienda",
+    "Edit Store": "Editar tienda",
+    "Store Name": "Nombre de la tienda",
+    "Currency Symbol": "Símbolo de moneda",
+    "A place you play and earn credit — a local game store, online shop, anything.": "Un lugar donde juegas y ganas crédito — una tienda local, tienda online, lo que sea.",
+    "e.g. Dragon's Den Games": "ej. Tienda El Dragón",
+    "e.g. $ or pts": "ej. $ o pts",
+    "Total credit across all stores": "Crédito total en todas las tiendas",
+    "entries": "entradas",
+    "Earned": "Ganado",
+    "Spent": "Gastado",
+    "Balance": "Saldo",
+    "Current balance": "Saldo actual",
+    "Add credit": "Añadir crédito",
+    "Spend credit": "Gastar crédito",
+    "Add Credit": "Añadir crédito",
+    "Spend Credit": "Gastar crédito",
+    "Edit Entry": "Editar entrada",
+    "Add an entry": "Añadir entrada",
+    "Amount": "Monto",
+    "Event / Item": "Evento / Artículo",
+    "Event it came from": "Evento de donde vino",
+    "What you spent it on": "En qué lo gastaste",
+    "e.g. League Cup Top 4": "ej. Top 4 League Cup",
+    "e.g. booster box, sleeves": "ej. caja de sobres, fundas",
+    "Credit earned": "Crédito ganado",
+    "Anything worth remembering...": "Algo que valga la pena recordar...",
+    "No entries yet — add credit earned or spent.": "Aún no hay entradas — añade crédito ganado o gastado.",
+    "Edit store": "Editar tienda",
+    "Delete Store?": "¿Eliminar tienda?",
+    "This permanently removes the store and its whole credit history.": "Esto elimina permanentemente la tienda y todo su historial de crédito.",
+    "Can't spend more than the balance": "No puedes gastar más que el saldo",
+    "Note": "Nota",
+    "current": "actual",
+    "This match will be recorded under the version you pick.": "Esta partida se registrará en la versión que elijas.",
+    "→ Apply to deck": "→ Aplicar al mazo",
+    "Copy this list onto one of your decks": "Copiar esta lista a uno de tus mazos",
+    "Apply V": "Aplicar V",
+    "to a deck": "a un mazo",
+    "This overwrites the chosen deck's decklist with this tested version. Your testing session is unchanged.": "Esto reemplaza la lista del mazo elegido con esta versión probada. Tu sesión de prueba no cambia.",
+    "Apply to which deck?": "¿A qué mazo aplicar?",
+    "Overwrite deck": "Reemplazar mazo",
+    "View list": "Ver lista",
+    "Set current": "Marcar como actual",
+    "Add new version": "Añadir nueva versión",
+    "Decklist versions": "Versiones de la lista",
+    "now testing": "probando ahora",
+    "Decklist version": "Versión de la lista",
+    "No decklist versions yet — add one to track changes.": "Aún no hay versiones — añade una para registrar cambios.",
+    "Linked matches attach to the current version.": "Las partidas vinculadas se asignan a la versión actual.",
+    "Paste the updated decklist and note what changed and why. New matches will attach to this version.": "Pega la lista actualizada y anota qué cambiaste y por qué. Las nuevas partidas se asignarán a esta versión.",
+    "What changed & why": "Qué cambió y por qué",
+    "Copy list from a saved deck": "Copiar lista de un mazo guardado",
+    "Copy": "Copiar",
+    "Add version": "Añadir versión",
+    "e.g. -2 Counter Catcher, +2 Boss — needed reliable gust vs Gardevoir": "ej. -2 Counter Catcher, +2 Boss — necesitaba gust fiable vs Gardevoir",
     "Competitive": "Competitivo",
     "Match Category": "Categoría de partida",
     "Your Testing Sessions": "Tus sesiones de prueba",
@@ -883,7 +958,7 @@ function toggleLang() {
 /** Apply translations to the static (non-rendered) HTML: nav + footer. */
 function applyStaticI18n() {
   // nav labels (preserve any trailing count badge element)
-  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", testing: "Testing", settings: "Settings" };
+  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", testing: "Testing", credits: "Store Credits", settings: "Settings" };
   $$(".nav-item").forEach(n => {
     const page = n.dataset.page, label = navMap[page];
     // first text node holds the label
@@ -915,7 +990,7 @@ function isWinResult(r) { return r === "Win" || r === "Match Win"; }
 /* ------------------------------------------------------------------ */
 /* 1. STATE & PERSISTENCE                                             */
 /* ------------------------------------------------------------------ */
-let State = { decks: [], matches: [], tournaments: [], testSessions: [], settings: { theme: "dark" } };
+let State = { decks: [], matches: [], tournaments: [], testSessions: [], stores: [], settings: { theme: "dark" } };
 
 /** Load state from LocalStorage (for the current user/local key). */
 function loadLocal() {
@@ -936,6 +1011,7 @@ function normaliseState(obj) {
     matches:      Array.isArray(obj?.matches)      ? obj.matches      : [],
     tournaments:  Array.isArray(obj?.tournaments)  ? obj.tournaments  : [],
     testSessions: Array.isArray(obj?.testSessions) ? obj.testSessions : [],
+    stores:       Array.isArray(obj?.stores)       ? obj.stores       : [],
     settings: (obj?.settings && typeof obj.settings === "object") ? obj.settings : { theme: "dark" },
   };
   // Back-compat: matches saved before the category field default to Competitive
@@ -1583,23 +1659,33 @@ Energy: 13
   inPerson.slice(-12, -8).forEach(m => m.tournamentId = weekly.id);
 
   // --- seed a testing session with some practice games (kept out of competitive stats) ---
+  const testDeck = State.decks[0];
+  const v1 = { id: uid(), n: 1, date: new Date(Date.now() - 11 * 864e5).toISOString().slice(0, 10),
+    decklist: testDeck.decklist || "", overrides: testDeck.overrides ? { ...testDeck.overrides } : null,
+    deckName: testDeck.name, reason: "Starting list — stock Charizard." };
+  const v2 = { id: uid(), n: 2, date: new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10),
+    decklist: testDeck.decklist || "", overrides: testDeck.overrides ? { ...testDeck.overrides } : null,
+    deckName: testDeck.name, reason: "-2 Counter Catcher, +2 Boss's Orders — needed reliable gust vs Gardevoir." };
   const testSession = {
     id: uid(), name: "Pre-Regional Testing", date: new Date(Date.now() - 11 * 864e5).toISOString().slice(0, 10),
-    notes: "Goldfishing the Charizard list and testing the Gardevoir matchup. Trying 2 Counter Catcher over 1 Boss."
+    notes: "Goldfishing the Charizard list and testing the Gardevoir matchup.",
+    versions: [v1, v2], currentVersionId: v2.id
   };
   State.testSessions = [testSession];
-  // create ~10 dedicated testing matches (NOT counted in competitive numbers)
-  const testDeck = State.decks[0];
-  for (let i = 0; i < 10; i++) {
+  // create ~12 dedicated testing matches (NOT counted in competitive numbers),
+  // split across the two versions so the per-version breakdown is visible.
+  for (let i = 0; i < 12; i++) {
+    const onV1 = i < 5;                       // first 5 on V1, rest on V2
+    const ver = onV1 ? v1 : v2;
     const first = Math.random() > 0.5, bo3 = Math.random() > 0.5;
-    const win = Math.random() < 0.58;
+    const win = Math.random() < (onV1 ? 0.5 : 0.72);   // V2 tests better, on purpose
     matches.push({
       id: uid(), deckId: testDeck.id,
-      date: new Date(Date.now() - (12 - Math.floor(i / 2)) * 864e5).toISOString().slice(0, 10),
+      date: new Date(Date.now() - ((onV1 ? 11 : 6) - Math.floor((onV1 ? i : i - 5) / 2)) * 864e5).toISOString().slice(0, 10),
       opponent: opps[Math.floor(Math.random() * opps.length)],
       notes: "", extraNotes: "Practice game.",
       bricked: Math.random() < 0.12,
-      category: "Testing", testSessionId: testSession.id,
+      category: "Testing", testSessionId: testSession.id, testVersionId: ver.id,
       format: bo3 ? "BO3" : "BO1",
       position: first ? "First" : "Second",
       type: "Online",
@@ -1608,6 +1694,16 @@ Energy: 13
     });
   }
   State.matches = matches;
+
+  // --- seed a sample store with a few credit entries ---
+  State.stores = [{
+    id: uid(), name: "Dragon's Den Games",
+    entries: [
+      { id: uid(), kind: "earn", date: new Date(Date.now() - 9 * 864e5).toISOString().slice(0,10), amount: 40, label: "Regional Top 16", note: "" },
+      { id: uid(), kind: "earn", date: new Date(Date.now() - 4 * 864e5).toISOString().slice(0,10), amount: 15, label: "Tuesday Weekly 2nd", note: "" },
+      { id: uid(), kind: "spend", date: new Date(Date.now() - 2 * 864e5).toISOString().slice(0,10), amount: 25, label: "Booster box", note: "Surging Sparks" },
+    ]
+  }];
 
   State.settings = { theme: "dark" };
   save();
@@ -1732,6 +1828,7 @@ const PAGE_META = {
   history:   ["Match History", "Search, filter, and edit past matches"],
   tournaments: ["Tournaments", "Your events, grouped run by run"],
   testing:   ["Testing", "Practice sessions — kept out of your competitive stats"],
+  credits:   ["Store Credits", "Track credit you've earned and spent at each store"],
   settings:  ["Settings", "Backup, import, export, and reset your data"],
 };
 let currentPage = "dashboard";
@@ -1750,7 +1847,7 @@ function navigate(page) {
 }
 function renderPage(page) {
   ({ dashboard: renderDashboard, decks: renderDecks, logger: renderLogger,
-     history: renderHistory, tournaments: renderTournaments, testing: renderTesting, settings: renderSettings }[page] || (() => {}))();
+     history: renderHistory, tournaments: renderTournaments, testing: renderTesting, credits: renderCredits, settings: renderSettings }[page] || (() => {}))();
 }
 /** Re-render the active page + sidebar counters after any data change. */
 function refreshAll() {
@@ -1758,6 +1855,7 @@ function refreshAll() {
   $("#navMatchCount").textContent = State.matches.length;
   const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
   const ts = $("#navTestCount"); if (ts) ts.textContent = State.testSessions.length;
+  const sc = $("#navStoreCount"); if (sc) sc.textContent = State.stores.length;
   renderPage(currentPage);
 }
 
@@ -2529,11 +2627,16 @@ function renderLogger(editId) {
     <div class="field" id="testField" style="margin-top:16px;max-width:520px;display:none">
       <label>${t("Testing Session")} <span class="opt">${t("(optional)")}</span></label>
       <div style="display:flex;gap:8px">
-        <select class="select" id="mTestSession" style="flex:1" onchange="syncCategoryFromLinks()">
+        <select class="select" id="mTestSession" style="flex:1" onchange="onTestSessionChange()">
           <option value="">${t("— none —")}</option>
           ${[...State.testSessions].sort((a,b)=>b.date.localeCompare(a.date)).map(ts => `<option value="${ts.id}" ${m && m.testSessionId === ts.id ? "selected" : ""}>${esc(ts.name)} · ${fmtDate(ts.date)}</option>`).join("")}
         </select>
         <button type="button" class="btn btn-ghost" style="white-space:nowrap" onclick="quickCreateTestSession()" title="${t("Create a new session")}">+ ${t("New")}</button>
+      </div>
+      <div id="versionPickerWrap" style="margin-top:10px;display:none">
+        <label style="font-size:12px">${t("Decklist version")}</label>
+        <select class="select" id="mTestVersion"></select>
+        <div style="font-size:11px;color:var(--txt-2);margin-top:5px">${t("This match will be recorded under the version you pick.")}</div>
       </div>
     </div>
 
@@ -2591,6 +2694,7 @@ function renderLogger(editId) {
   syncResultOptions(m ? m.result : null, m ? m.score : "");
   updateDeckSprite();
   syncCategoryUI();
+  populateVersionPicker(m ? m.testVersionId : null);
 }
 
 /** Show the tournament field for Competitive, the testing-session field for Testing. */
@@ -2606,6 +2710,32 @@ function syncCategoryFromLinks() {
     const r = $('input[name="cat"][value="Testing"]'); if (r) r.checked = true;
   }
   syncCategoryUI();
+  populateVersionPicker();
+}
+/** Session dropdown changed: sync category + repopulate the version picker. */
+function onTestSessionChange() {
+  syncCategoryFromLinks();
+  populateVersionPicker();
+}
+/**
+ * Fill the version dropdown for the currently-selected testing session.
+ * Defaults to the session's current version (or a passed preselect for edits).
+ */
+function populateVersionPicker(preselect) {
+  const wrap = $("#versionPickerWrap"), sel = $("#mTestVersion"), sessSel = $("#mTestSession");
+  if (!wrap || !sel || !sessSel) return;
+  const ts = State.testSessions.find(x => x.id === sessSel.value);
+  if (!ts) { wrap.style.display = "none"; sel.innerHTML = ""; return; }
+  ensureVersions(ts);
+  if (!ts.versions || !ts.versions.length) { wrap.style.display = "none"; sel.innerHTML = ""; return; }
+  const cur = ts.currentVersionId;
+  const chosen = preselect || cur;
+  sel.innerHTML = [...ts.versions].sort((a, b) => a.n - b.n).map(v => {
+    const isCur = v.id === cur;
+    const reason = v.reason ? " — " + v.reason.slice(0, 40) + (v.reason.length > 40 ? "…" : "") : "";
+    return `<option value="${v.id}" ${v.id === chosen ? "selected" : ""}>V${v.n}${isCur ? " (" + t("current") + ")" : ""}${esc(reason)}</option>`;
+  }).join("");
+  wrap.style.display = "";
 }
 
 /** Refresh the little sprite shown beside the deck dropdown in the logger. */
@@ -2643,12 +2773,26 @@ function saveMatch(id) {
   // Links depend on category: Competitive -> tournament; Testing -> session.
   const tournamentId = category === "Competitive" && $("#mTournament") ? ($("#mTournament").value || undefined) : undefined;
   const testSessionId = category === "Testing" && $("#mTestSession") ? ($("#mTestSession").value || undefined) : undefined;
+  // When attaching to a session, tag the match with the PICKED version
+  // (falling back to the session's current version if the picker is empty).
+  let testVersionId = undefined;
+  if (testSessionId) {
+    const ts = State.testSessions.find(x => x.id === testSessionId);
+    const picked = $("#mTestVersion") ? $("#mTestVersion").value : "";
+    if (picked && ts && (ts.versions || []).some(v => v.id === picked)) {
+      testVersionId = picked;
+    } else {
+      const cv = ts && currentVersion(ts);
+      if (cv) testVersionId = cv.id;
+    }
+  }
   const obj = {
     deckId, date,
     opponent: $("#mOpp").value.trim(),
     category,
     tournamentId,
     testSessionId,
+    testVersionId,
     notes: $("#mNotes").value.trim(),
     extraNotes: $("#mExtra").value.trim(),
     bricked: $('input[name="brick"]:checked')?.value === "yes",
@@ -2661,7 +2805,7 @@ function saveMatch(id) {
   if (id) {
     const existing = State.matches.find(x => x.id === id);
     // clear the opposite-category link cleanly
-    delete existing.tournamentId; delete existing.testSessionId; delete existing.event;
+    delete existing.tournamentId; delete existing.testSessionId; delete existing.testVersionId; delete existing.event;
     Object.assign(existing, obj);
     toast("Match updated.", "success"); save(); refreshAll(); navigate("history");
   } else {
@@ -3176,6 +3320,59 @@ function testMatches(sid) {
 }
 function testSessionName(sid) { return State.testSessions.find(x => x.id === sid)?.name || ""; }
 
+/* ---- Decklist VERSIONS within a testing session ----
+   Each session can hold an ordered list of versions, each with its own
+   frozen decklist and a "what changed & why" reason note. The current
+   version is the one new matches attach to. Per-version records let you
+   see whether a change actually improved your win rate. */
+
+/** Ensure a session has a versions array; migrate older single-snapshot
+    sessions into a first version ("V1") so nothing is lost. */
+function ensureVersions(ts) {
+  if (!Array.isArray(ts.versions)) ts.versions = [];
+  if (ts.versions.length === 0) {
+    // Seed V1 from an existing snapshot, or from the primary deck's list.
+    let list = ts.decklistSnapshot, ovr = ts.snapshotOverrides || null, name = ts.snapshotDeckName;
+    if (!list) {
+      const pid = testPrimaryDeckId(ts);
+      const deck = pid && State.decks.find(d => d.id === pid);
+      if (deck && deck.decklist) { list = deck.decklist; ovr = deck.overrides ? { ...deck.overrides } : null; name = deck.name; }
+    }
+    if (list) {
+      const v = { id: uid(), n: 1, date: ts.snapshotDate || ts.date, decklist: list, overrides: ovr, deckName: name || "", reason: "Starting list" };
+      ts.versions.push(v);
+      ts.currentVersionId = v.id;
+      // tag any existing matches that have no version onto V1
+      testMatches(ts.id).forEach(m => { if (!m.testVersionId) m.testVersionId = v.id; });
+    }
+  }
+  if (!ts.currentVersionId && ts.versions.length) ts.currentVersionId = ts.versions[ts.versions.length - 1].id;
+  return ts.versions;
+}
+/** The current version object of a session (or null). */
+function currentVersion(ts) {
+  ensureVersions(ts);
+  return ts.versions.find(v => v.id === ts.currentVersionId) || ts.versions[ts.versions.length - 1] || null;
+}
+/** Matches played on a specific version. */
+function versionMatches(sid, vid) {
+  return by(State.matches, m => m.testSessionId === sid && m.testVersionId === vid);
+}
+/** Add a new version to a session and make it current. */
+function addTestVersion(sid, decklist, reason, deckName, overrides) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  if (!ts) return null;
+  ensureVersions(ts);
+  const v = {
+    id: uid(), n: (ts.versions.reduce((mx, x) => Math.max(mx, x.n || 0), 0) + 1),
+    date: todayISO(), decklist: decklist || "", overrides: overrides || null,
+    deckName: deckName || "", reason: reason || ""
+  };
+  ts.versions.push(v);
+  ts.currentVersionId = v.id;
+  return v;
+}
+
 /** Primary deck of a testing session = most-used deck across its matches. */
 function testPrimaryDeckId(ts) {
   if (ts.snapshotDeckId && State.decks.find(d => d.id === ts.snapshotDeckId)) return ts.snapshotDeckId;
@@ -3347,21 +3544,49 @@ function deleteTestSession(id) {
       save(); refreshAll(); toast("Session deleted.", "info");
     });
 }
-/** Open a testing session: match list + summary + link/unlink. */
+/** Open a testing session: per-version breakdown + match list + link/unlink. */
 function viewTestSession(id) {
   const ts = State.testSessions.find(x => x.id === id);
   if (!ts) return;
+  ensureVersions(ts);
   const ms = testMatches(id);
   const s = tally(ms);
-  // only offer Testing-eligible unlinked matches (not tied to a tournament)
+  const cv = currentVersion(ts);
   const unlinked = State.matches.filter(m => !m.testSessionId && !m.tournamentId).sort((a, b) => b.date.localeCompare(a.date));
+  const verLabel = (vid) => { const v = ts.versions.find(x => x.id === vid); return v ? "V" + v.n : "—"; };
+
+  // Per-version breakdown: record + win% + reason for each version.
+  const versionPanel = ts.versions.length ? `
+    <div class="ver-list">
+      ${[...ts.versions].sort((a,b)=>a.n-b.n).map(v => {
+        const vm = versionMatches(id, v.id);
+        const vs = tally(vm);
+        const isCur = v.id === ts.currentVersionId;
+        return `<div class="ver-item ${isCur ? "ver-current" : ""}">
+          <div class="ver-top">
+            <div class="ver-tag">V${v.n}${isCur ? ` <span class="ver-cur-badge">${t("current")}</span>` : ""}</div>
+            <div class="ver-rec">${vs.record} · <b style="color:${wrColor(vs.wr)}">${vs.wr}%</b> <span style="color:var(--txt-2);font-weight:400">(${vm.length} ${t("games")})</span></div>
+          </div>
+          ${v.reason ? `<div class="ver-reason">${esc(v.reason)}</div>` : ""}
+          <div class="ver-actions">
+            <button class="btn btn-ghost btn-sm" onclick="viewVersionDecklist('${id}','${v.id}')">${t("View list")}</button>
+            ${!isCur ? `<button class="btn btn-ghost btn-sm" onclick="setCurrentVersion('${id}','${v.id}')">${t("Set current")}</button>` : ""}
+            <button class="btn btn-ghost btn-sm" onclick="applyVersionToDeck('${id}','${v.id}')" title="${t("Copy this list onto one of your decks")}">${t("→ Apply to deck")}</button>
+            <span style="color:var(--txt-2);font-size:11px;align-self:center">${fmtDate(v.date)}</span>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+    <button class="btn btn-gold btn-sm" style="margin:4px 0 16px" onclick="openAddVersion('${id}')">+ ${t("Add new version")}</button>
+  ` : `<div style="color:var(--txt-2);font-size:12.5px;margin-bottom:14px">${t("No decklist versions yet — add one to track changes.")}
+       <button class="btn btn-gold btn-sm" style="margin-left:8px" onclick="openAddVersion('${id}')">+ ${t("Add new version")}</button></div>`;
 
   const rows = ms.map((m, i) => {
     const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
     const label = isWin(m) ? t("Win") : isLoss(m) ? t("Loss") : t("Draw");
     return `<tr>
       <td style="color:var(--txt-2)">#${i + 1}</td>
-      <td><div class="cell-deck">${pokeSprite(deckName(m.deckId),24)}<b>${esc(deckName(m.deckId))}</b></div></td>
+      <td><span class="pill muted" title="${t("Decklist version")}">${verLabel(m.testVersionId)}</span></td>
       <td>${t("vs")} ${m.opponent ? `<span class="cell-deck" style="display:inline-flex">${pokeSprite(m.opponent,22)}${esc(m.opponent)}</span>` : "—"}</td>
       <td><span class="pill muted">${m.format}</span></td>
       <td>${m.position === "First" ? t("1st") : t("2nd")}</td>
@@ -3374,14 +3599,19 @@ function viewTestSession(id) {
 
   openModal(`
     <h2>🧪 ${esc(ts.name)}</h2>
-    <p class="sub">${t("Testing")} · ${fmtDate(ts.date)}</p>
+    <p class="sub">${t("Testing")} · ${fmtDate(ts.date)}${cv ? " · " + t("now testing") + " V" + cv.n : ""}</p>
     <div class="grid stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
       ${statCard("Record", s.record, "", "accent")}
       ${statCard("Win %", s.wr + "%", "", "gold")}
       ${statCard("Matches", ms.length, "", "accent")}
     </div>
     ${ts.notes ? `<div class="note-block" style="margin-bottom:16px"><span class="note-label">📌 ${t("Notes")}</span><p>${esc(ts.notes)}</p></div>` : ""}
-    ${ms.length ? `<div class="table-wrap" style="margin-bottom:8px"><table style="min-width:620px"><tbody>${rows}</tbody></table></div>`
+
+    <div class="note-label" style="margin-bottom:8px">🧬 ${t("Decklist versions")}</div>
+    ${versionPanel}
+
+    <div class="note-label" style="margin:6px 0 8px">📋 ${t("Matches")}</div>
+    ${ms.length ? `<div class="table-wrap" style="margin-bottom:8px"><table style="min-width:640px"><tbody>${rows}</tbody></table></div>`
                 : `<div style="text-align:center;color:var(--txt-2);padding:20px">${t("No matches linked yet.")}</div>`}
 
     <div class="field" style="margin-top:8px">
@@ -3396,7 +3626,7 @@ function viewTestSession(id) {
         </select>
         <button class="btn btn-primary" onclick="linkSelectedTestMatch('${id}')">${t("Add")}</button>
       </div>
-      <div style="font-size:11.5px;color:var(--txt-2);margin-top:6px">${t("Linking a match here marks it as Testing.")}</div>
+      <div style="font-size:11.5px;color:var(--txt-2);margin-top:6px">${t("Linked matches attach to the current version.")}</div>
     </div>
 
     <div class="modal-actions">
@@ -3404,15 +3634,347 @@ function viewTestSession(id) {
       <button class="btn btn-primary" onclick="openTestModal('${id}')">${t("Edit")}</button>
     </div>`, true);
 }
+
+/** Modal to add a new decklist version (paste list + reason). */
+function openAddVersion(sid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  if (!ts) return;
+  ensureVersions(ts);
+  const cv = currentVersion(ts);
+  // Prefill with the current version's list (or the primary deck's) for easy editing.
+  const pid = testPrimaryDeckId(ts);
+  const prefill = cv?.decklist || (pid && State.decks.find(d => d.id === pid)?.decklist) || "";
+  const deckOpts = State.decks.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+  openModal(`
+    <h2>${t("Add new version")}</h2>
+    <p class="sub">${t("Paste the updated decklist and note what changed and why. New matches will attach to this version.")}</p>
+    <div class="field"><label>${t("Copy list from a saved deck")} <span class="opt">${t("(optional)")}</span></label>
+      <div style="display:flex;gap:8px">
+        <select class="select" id="avDeck" style="flex:1"><option value="">${t("— none —")}</option>${deckOpts}</select>
+        <button type="button" class="btn btn-ghost" onclick="avCopyFromDeck()">${t("Copy")}</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px"><label>${t("Decklist")}</label>
+      <textarea class="textarea mono" id="avList" style="min-height:140px" placeholder="Pokémon: ...">${esc(prefill)}</textarea></div>
+    <div class="field" style="margin-top:12px"><label>${t("What changed & why")}</label>
+      <textarea class="textarea" id="avReason" placeholder="${t("e.g. -2 Counter Catcher, +2 Boss — needed reliable gust vs Gardevoir")}"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="viewTestSession('${sid}')">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveAddVersion('${sid}')">${t("Add version")}</button>
+    </div>`, true);
+  setTimeout(() => $("#avReason")?.focus(), 50);
+}
+function avCopyFromDeck() {
+  const id = $("#avDeck").value;
+  const d = State.decks.find(x => x.id === id);
+  if (d && d.decklist) { $("#avList").value = d.decklist; toast("Decklist copied.", "success"); }
+}
+function saveAddVersion(sid) {
+  const list = $("#avList").value;
+  const reason = $("#avReason").value.trim();
+  if (!list.trim()) { toast("Paste a decklist for this version.", "error"); return; }
+  const deckId = $("#avDeck").value;
+  const deckName2 = deckId ? (State.decks.find(d => d.id === deckId)?.name || "") : "";
+  const overrides = deckId ? (State.decks.find(d => d.id === deckId)?.overrides || null) : null;
+  addTestVersion(sid, list, reason, deckName2, overrides);
+  save(); toast("Version added.", "success"); viewTestSession(sid); refreshAll();
+}
+/** Make a version the current one (new matches will attach to it). */
+function setCurrentVersion(sid, vid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  if (!ts) return;
+  ts.currentVersionId = vid;
+  save(); toast("Current version updated.", "success"); viewTestSession(sid);
+}
+/** View a specific version's frozen decklist. */
+function viewVersionDecklist(sid, vid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  const v = ts && ts.versions.find(x => x.id === vid);
+  if (!v) return;
+  const frozen = {
+    id: "__testver_" + vid,
+    name: `${ts.name} — V${v.n}`,
+    created: v.date, decklist: v.decklist, overrides: v.overrides || null,
+    _frozenTestVer: true,
+  };
+  _frozenDeckCache[frozen.id] = frozen;
+  viewDecklist(frozen.id);
+}
+/** Copy a tested version's decklist onto one of the user's real decks. */
+function applyVersionToDeck(sid, vid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  const v = ts && ts.versions.find(x => x.id === vid);
+  if (!v) return;
+  if (!State.decks.length) { toast("You have no decks to apply this to.", "error"); return; }
+  const pid = testPrimaryDeckId(ts);
+  const deckOpts = State.decks.map(d => `<option value="${d.id}" ${d.id === pid ? "selected" : ""}>${esc(d.name)}</option>`).join("");
+  openModal(`
+    <h2>${t("Apply V")}${v.n} ${t("to a deck")}</h2>
+    <p class="sub">${t("This overwrites the chosen deck's decklist with this tested version. Your testing session is unchanged.")}</p>
+    <div class="field"><label>${t("Apply to which deck?")}</label>
+      <select class="select" id="applyDeckSel">${deckOpts}</select></div>
+    ${v.reason ? `<div class="ver-reason" style="margin-top:12px">${esc(v.reason)}</div>` : ""}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="viewTestSession('${sid}')">${t("Cancel")}</button>
+      <button class="btn btn-danger" onclick="confirmApplyVersion('${sid}','${vid}')">${t("Overwrite deck")}</button>
+    </div>`);
+}
+function confirmApplyVersion(sid, vid) {
+  const ts = State.testSessions.find(x => x.id === sid);
+  const v = ts && ts.versions.find(x => x.id === vid);
+  const deckId = $("#applyDeckSel") ? $("#applyDeckSel").value : "";
+  const deck = State.decks.find(d => d.id === deckId);
+  if (!v || !deck) { toast("Couldn't apply — deck not found.", "error"); return; }
+  deck.decklist = v.decklist;
+  if (v.overrides) deck.overrides = { ...v.overrides }; else delete deck.overrides;
+  save(); closeModal(); refreshAll();
+  toast("Deck updated from tested version.", "success");
+}
 function linkSelectedTestMatch(sid) {
   const mid = $("#linkTestSel").value;
   if (!mid) { toast("Choose a match first.", "error"); return; }
   const m = State.matches.find(x => x.id === mid);
-  if (m) { m.testSessionId = sid; m.category = "Testing"; delete m.tournamentId; save(); toast("Match linked.", "success"); viewTestSession(sid); refreshAll(); }
+  if (m) {
+    const ts = State.testSessions.find(x => x.id === sid);
+    const cv = ts && currentVersion(ts);
+    m.testSessionId = sid; m.category = "Testing"; m.testVersionId = cv ? cv.id : undefined; delete m.tournamentId;
+    save(); toast("Match linked.", "success"); viewTestSession(sid); refreshAll();
+  }
 }
 function unlinkTestMatch(mid, sid) {
   const m = State.matches.find(x => x.id === mid);
   if (m) { delete m.testSessionId; save(); toast("Match unlinked.", "info"); viewTestSession(sid); refreshAll(); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 8c. STORE CREDITS (per-store earn/spend ledger)                    */
+/* ------------------------------------------------------------------ */
+/* A store = { id, name, symbol, entries: [ {id, kind:'earn'|'spend',
+   date, label, amount, note} ] }. Balance = sum(earn) - sum(spend). */
+
+/** Current balance for a store. */
+function storeBalance(store) {
+  return (store.entries || []).reduce((sum, e) => sum + (e.kind === "spend" ? -e.amount : e.amount), 0);
+}
+/** Total earned / spent for a store. */
+function storeTotals(store) {
+  let earned = 0, spent = 0;
+  (store.entries || []).forEach(e => { if (e.kind === "spend") spent += e.amount; else earned += e.amount; });
+  return { earned, spent, balance: earned - spent };
+}
+/** The Pokémon Dollar symbol — a "P" with a double bar. No reliable Unicode
+   character exists for it, so we draw it as a small inline SVG that renders
+   identically everywhere. Sized to sit inline with the number. */
+const POKEDOLLAR_SVG = `<svg viewBox="0 0 24 24" width="0.92em" height="0.92em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-0.08em;margin-right:1px"><path d="M8 20V4h6a4 4 0 010 8H8"/><path d="M5 10h9"/><path d="M5 14h9"/></svg>`;
+
+/** Format an amount with the Pokédollar glyph in front. */
+function fmtCredit(store, n) {
+  const val = Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return `${POKEDOLLAR_SVG}${val}`;
+}
+
+function renderCredits() {
+  const el = $("#page-credits");
+  const head = `<div class="section-head" style="margin-top:0">
+    <h2><span class="dot"></span> ${t("Your Stores")} <span class="badge-count">${State.stores.length}</span></h2>
+    <button class="btn btn-gold" onclick="openStoreModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> ${t("Add Store")}</button>
+  </div>`;
+
+  if (State.stores.length === 0) {
+    el.innerHTML = head + emptyState("🏪", "No stores yet",
+      "Add a store where you play, then record the credit you earn and spend there.",
+      `<button class="btn btn-primary" onclick="openStoreModal()">${t("Add Store")}</button>`);
+    return;
+  }
+
+  // single currency (Pokédollars) — sum every store's balance
+  const grandTotal = State.stores.reduce((sum, s) => sum + storeBalance(s), 0);
+  const totalLine = fmtCredit(null, grandTotal);
+
+  const cards = [...State.stores].sort((a,b)=>a.name.localeCompare(b.name)).map((s, i) => {
+    const tot = storeTotals(s);
+    const n = (s.entries || []).length;
+    const balColor = tot.balance > 0 ? "var(--win)" : tot.balance < 0 ? "var(--loss)" : "var(--txt-1)";
+    return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
+      <div class="top">
+        <div style="max-width:70%">
+          <h3>${esc(s.name)}</h3>
+          <div class="created">🏪 ${n} ${t("entries")}</div>
+        </div>
+        <div class="wr-badge" style="color:${balColor};font-size:18px">${fmtCredit(s, tot.balance)}</div>
+      </div>
+      <div class="ct-split">
+        <div class="ct-box ct-comp" style="border-left-color:var(--win)">
+          <div class="ct-head">＋ ${t("Earned")}</div>
+          <div class="ct-rec" style="color:var(--win)">${fmtCredit(s, tot.earned)}</div>
+        </div>
+        <div class="ct-box ct-test" style="border-left-color:var(--loss)">
+          <div class="ct-head">－ ${t("Spent")}</div>
+          <div class="ct-rec" style="color:var(--loss)">${fmtCredit(s, tot.spent)}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary btn-sm" onclick="viewStore('${s.id}')">${t("Open")} (${n})</button>
+        <button class="btn btn-ghost btn-sm" onclick="openStoreModal('${s.id}')">${t("Edit")}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteStore('${s.id}')" style="margin-left:auto">${t("Delete")}</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = head + `
+    <div class="glass" style="padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <span style="color:var(--txt-1);font-size:13px">${t("Total credit across all stores")}</span>
+      <b style="font-family:'Chakra Petch';font-size:20px;color:var(--accent)">${totalLine || 0}</b>
+    </div>
+    <div class="grid deck-grid">${cards}</div>`;
+}
+
+/** Create / edit a store. */
+function openStoreModal(id) {
+  const s = id ? State.stores.find(x => x.id === id) : null;
+  openModal(`
+    <h2>${s ? t("Edit Store") : t("Add Store")}</h2>
+    <p class="sub">${t("A place you play and earn credit — a local game store, online shop, anything.")}</p>
+    <div class="field"><label>${t("Store Name")}</label>
+      <input class="input" id="stName" placeholder="${t("e.g. Dragon's Den Games")}" value="${s ? esc(s.name) : ""}"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveStore('${s ? s.id : ""}')">${s ? t("Save Changes") : t("Add Store")}</button>
+    </div>`);
+  setTimeout(() => $("#stName").focus(), 50);
+}
+function saveStore(id) {
+  const name = $("#stName").value.trim();
+  if (!name) { toast("Store name is required.", "error"); return; }
+  if (id) {
+    const s = State.stores.find(x => x.id === id);
+    s.name = name;
+    toast("Store updated.", "success");
+  } else {
+    State.stores.push({ id: uid(), name, entries: [] });
+    toast("Store added.", "success");
+  }
+  save(); closeModal(); refreshAll();
+}
+function deleteStore(id) {
+  const s = State.stores.find(x => x.id === id);
+  confirmModal("Delete Store?",
+    `${t("This permanently removes the store and its whole credit history.")}`,
+    () => {
+      State.stores = State.stores.filter(x => x.id !== id);
+      save(); refreshAll(); toast("Store deleted.", "info");
+    });
+}
+
+/** Open a store: balance + ledger of earn/spend entries. */
+function viewStore(id) {
+  const s = State.stores.find(x => x.id === id);
+  if (!s) return;
+  const tot = storeTotals(s);
+  const entries = [...(s.entries || [])].sort((a, b) => b.date.localeCompare(a.date) || (a.id < b.id ? 1 : -1));
+  const balColor = tot.balance > 0 ? "var(--win)" : tot.balance < 0 ? "var(--loss)" : "var(--txt-1)";
+
+  const rows = entries.map(e => {
+    const earn = e.kind !== "spend";
+    return `<tr>
+      <td style="color:var(--txt-2);white-space:nowrap">${fmtDate(e.date)}</td>
+      <td><span class="pill ${earn ? "win" : "loss"}">${earn ? "＋" : "－"} ${fmtCredit(s, e.amount)}</span></td>
+      <td>${esc(e.label || (earn ? t("Credit earned") : t("Spent")))}</td>
+      <td style="color:var(--txt-2)">${e.note ? esc(e.note) : ""}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-icon btn-sm" title="${t("Edit")}" onclick="openEntryModal('${s.id}','${e.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn btn-ghost btn-icon btn-sm" title="${t("Delete")}" onclick="deleteEntry('${s.id}','${e.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  openModal(`
+    <h2>🏪 ${esc(s.name)}</h2>
+    <p class="sub">${t("Current balance")}: <b style="color:${balColor};font-size:15px">${fmtCredit(s, tot.balance)}</b></p>
+    <div class="grid stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      ${statCard("Balance", fmtCredit(s, tot.balance), "", "gold")}
+      ${statCard("Earned", fmtCredit(s, tot.earned), "", "win")}
+      ${statCard("Spent", fmtCredit(s, tot.spent), "", "loss")}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" onclick="openEntryModal('${s.id}',null,'earn')">＋ ${t("Add credit")}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEntryModal('${s.id}',null,'spend')">－ ${t("Spend credit")}</button>
+    </div>
+    ${entries.length
+      ? `<div class="table-wrap"><table style="min-width:560px"><thead><tr><th>${t("Date")}</th><th>${t("Amount")}</th><th>${t("Event / Item")}</th><th>${t("Note")}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : `<div style="text-align:center;color:var(--txt-2);padding:20px">${t("No entries yet — add credit earned or spent.")}</div>`}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Close")}</button>
+      <button class="btn btn-primary" onclick="openStoreModal('${s.id}')">${t("Edit store")}</button>
+    </div>`, true);
+}
+
+/** Add / edit a ledger entry. kind = 'earn' | 'spend' (for new entries). */
+function openEntryModal(storeId, entryId, kind) {
+  const s = State.stores.find(x => x.id === storeId);
+  if (!s) return;
+  const e = entryId ? (s.entries || []).find(x => x.id === entryId) : null;
+  const k = e ? e.kind : (kind || "earn");
+  const earn = k !== "spend";
+  openModal(`
+    <h2>${e ? t("Edit Entry") : (earn ? t("Add Credit") : t("Spend Credit"))}</h2>
+    <p class="sub">${esc(s.name)}${earn ? "" : ` · ${t("Current balance")}: ${fmtCredit(s, storeBalance(s))}`}</p>
+    <div class="form-grid">
+      <div class="field"><label>${t("Date")}</label>
+        <input class="input" type="date" id="enDate" value="${e ? e.date : todayISO()}"></div>
+      <div class="field"><label>${t("Amount")} <span class="opt">(${POKEDOLLAR_SVG})</span></label>
+        <input class="input" type="number" step="0.01" min="0" id="enAmount" placeholder="0" value="${e ? e.amount : ""}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>${earn ? t("Event it came from") : t("What you spent it on")} <span class="opt">${t("(optional)")}</span></label>
+      <input class="input" id="enLabel" placeholder="${earn ? t("e.g. League Cup Top 4") : t("e.g. booster box, sleeves")}" value="${e ? esc(e.label || "") : ""}"></div>
+    <div class="field" style="margin-top:14px"><label>${t("Note")} <span class="opt">${t("(optional)")}</span></label>
+      <textarea class="textarea" id="enNote" placeholder="${t("Anything worth remembering...")}">${e ? esc(e.note || "") : ""}</textarea></div>
+    <input type="hidden" id="enKind" value="${k}">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="viewStore('${s.id}')">${t("Cancel")}</button>
+      <button class="btn ${earn ? "btn-primary" : "btn-gold"}" onclick="saveEntry('${s.id}','${e ? e.id : ""}')">${e ? t("Save Changes") : (earn ? t("Add credit") : t("Spend credit"))}</button>
+    </div>`);
+  setTimeout(() => $("#enAmount").focus(), 50);
+}
+function saveEntry(storeId, entryId) {
+  const s = State.stores.find(x => x.id === storeId);
+  if (!s) return;
+  const kind = $("#enKind").value === "spend" ? "spend" : "earn";
+  const amount = parseFloat($("#enAmount").value);
+  if (!(amount > 0)) { toast("Enter an amount greater than zero.", "error"); return; }
+  const date = $("#enDate").value || todayISO();
+  const label = $("#enLabel").value.trim();
+  const note = $("#enNote").value.trim();
+
+  // Block spending more than the available balance (excluding the entry being edited).
+  if (kind === "spend") {
+    const others = (s.entries || []).filter(x => x.id !== entryId);
+    const avail = others.reduce((sum, e) => sum + (e.kind === "spend" ? -e.amount : e.amount), 0);
+    if (amount > avail) {
+      toast(`${t("Can't spend more than the balance")} (${fmtCredit(s, avail)}).`, "error");
+      return;
+    }
+  }
+
+  if (entryId) {
+    const e = (s.entries || []).find(x => x.id === entryId);
+    Object.assign(e, { kind, amount, date, label, note });
+    toast("Entry updated.", "success");
+  } else {
+    if (!s.entries) s.entries = [];
+    s.entries.push({ id: uid(), kind, amount, date, label, note });
+    toast(kind === "spend" ? "Credit spent." : "Credit added.", "success");
+  }
+  save(); viewStore(storeId); refreshAll();
+}
+function deleteEntry(storeId, entryId) {
+  const s = State.stores.find(x => x.id === storeId);
+  if (!s) return;
+  s.entries = (s.entries || []).filter(x => x.id !== entryId);
+  save(); viewStore(storeId); refreshAll(); toast("Entry removed.", "info");
 }
 
 /* ------------------------------------------------------------------ */
@@ -3592,6 +4154,9 @@ function startApp() {
   const b = $("#langToggle"); if (b) b.textContent = lang() === "en" ? "ES" : "EN";
   $("#navDeckCount").textContent  = State.decks.length;
   $("#navMatchCount").textContent = State.matches.length;
+  const tc = $("#navTourneyCount"); if (tc) tc.textContent = State.tournaments.length;
+  const ts = $("#navTestCount"); if (ts) ts.textContent = State.testSessions.length;
+  const sc = $("#navStoreCount"); if (sc) sc.textContent = State.stores.length;
   navigate("dashboard");
 }
 
