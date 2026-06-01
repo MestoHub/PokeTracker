@@ -289,6 +289,9 @@ tbody tr.selected{background:rgba(91,140,255,.12)}
 .btn-icon.note-open{background:var(--grad-accent);color:#fff;border-color:transparent}
 .test-note-row td{padding:0}
 .test-note-inner{display:flex;flex-direction:column;gap:10px;background:var(--bg-2);border:1px solid var(--stroke);border-radius:10px;padding:12px 14px;margin:2px 0 8px}
+.matchup-note{margin-top:14px;border-top:1px solid var(--stroke);padding-top:12px}
+.mu-note-text{font-size:12.5px;color:var(--txt-1);line-height:1.5;white-space:pre-wrap;margin:0;background:var(--bg-2);border-radius:8px;padding:9px 11px;border:1px solid var(--stroke)}
+.mu-note-empty{font-size:12px;color:var(--txt-2);font-style:italic;margin:0}
 .consistency{position:relative}
 .dl-tab.active{background:var(--grad-accent);color:#fff;border-color:transparent}
 /* ---- Limitless-style visual card grid ---- */
@@ -537,6 +540,10 @@ tbody tr:hover{background:var(--bg-2)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>
       Match History <span class="badge-count" id="navMatchCount" style="margin-left:auto">0</span>
     </a>
+    <a class="nav-item" data-page="matchups">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 3v18M6 3v18M6 8h12M6 16h12"/><circle cx="12" cy="12" r="2"/></svg>
+      Matchups
+    </a>
     <a class="nav-item" data-page="tournaments">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg>
       Tournaments <span class="badge-count" id="navTourneyCount" style="margin-left:auto">0</span>
@@ -605,6 +612,8 @@ tbody tr:hover{background:var(--bg-2)}
     <section class="page" id="page-testing"></section>
     <!-- ====== PAGE: STORE CREDITS ====== -->
     <section class="page" id="page-credits"></section>
+    <!-- ====== PAGE: MATCHUPS ====== -->
+    <section class="page" id="page-matchups"></section>
     <!-- ====== PAGE: SETTINGS ====== -->
     <section class="page" id="page-settings"></section>
   </main>
@@ -942,6 +951,21 @@ const I18N = {
     "Running in local-only mode.": "Modo solo local.",
     "This account isn't approved for access. Contact the owner.": "Esta cuenta no está autorizada. Contacta al propietario.",
     "View notes": "Ver notas",
+    "Matchups": "Emparejamientos",
+    "Matchups for": "Emparejamientos de",
+    "No matchup data yet": "Aún no hay datos de emparejamientos",
+    "Log some competitive matches with this deck to see how it performs against each opponent.": "Registra partidas competitivas con este mazo para ver su rendimiento contra cada rival.",
+    "Create a deck and log some matches to build matchup data.": "Crea un mazo y registra partidas para generar datos de emparejamientos.",
+    "Game plan & key cards": "Plan de juego y cartas clave",
+    "No notes yet for this matchup.": "Aún no hay notas para este emparejamiento.",
+    "Add notes": "Añadir notas",
+    "Edit notes": "Editar notas",
+    "Save notes": "Guardar notas",
+    "Your game plan, useful cards, and things to play around in this matchup.": "Tu plan de juego, cartas útiles y cosas a tener en cuenta en este emparejamiento.",
+    "e.g. Race the prize trade. Save Boss for their Kirlia. Tech: Counter Catcher. Play around Iono at low hand size.": "ej. Compite por los premios. Guarda Boss para su Kirlia. Tech: Counter Catcher. Cuidado con Iono con pocas cartas.",
+    "small sample": "muestra pequeña",
+    "Add a new opponent deck": "Añadir un mazo rival nuevo",
+    "Type the opponent deck name": "Escribe el nombre del mazo rival",
     "Synced to cloud.": "Sincronizado.", "Sync failed.": "Falló la sincronización.",
     "Sign in": "Iniciar sesión",
     "🧪 Consistency Analysis": "🧪 Análisis de consistencia",
@@ -970,7 +994,7 @@ function toggleLang() {
 /** Apply translations to the static (non-rendered) HTML: nav + footer. */
 function applyStaticI18n() {
   // nav labels (preserve any trailing count badge element)
-  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", testing: "Testing", credits: "Store Credits", settings: "Settings" };
+  const navMap = { dashboard: "Dashboard", decks: "Decks", logger: "Log Match", history: "Match History", tournaments: "Tournaments", testing: "Testing", credits: "Store Credits", matchups: "Matchups", settings: "Settings" };
   $$(".nav-item").forEach(n => {
     const page = n.dataset.page, label = navMap[page];
     // first text node holds the label
@@ -1002,7 +1026,7 @@ function isWinResult(r) { return r === "Win" || r === "Match Win"; }
 /* ------------------------------------------------------------------ */
 /* 1. STATE & PERSISTENCE                                             */
 /* ------------------------------------------------------------------ */
-let State = { decks: [], matches: [], tournaments: [], testSessions: [], stores: [], settings: { theme: "dark" } };
+let State = { decks: [], matches: [], tournaments: [], testSessions: [], stores: [], matchupNotes: {}, settings: { theme: "dark" } };
 
 /** Load state from LocalStorage (for the current user/local key). */
 function loadLocal() {
@@ -1024,6 +1048,7 @@ function normaliseState(obj) {
     tournaments:  Array.isArray(obj?.tournaments)  ? obj.tournaments  : [],
     testSessions: Array.isArray(obj?.testSessions) ? obj.testSessions : [],
     stores:       Array.isArray(obj?.stores)       ? obj.stores       : [],
+    matchupNotes: (obj?.matchupNotes && typeof obj.matchupNotes === "object") ? obj.matchupNotes : {},
     settings: (obj?.settings && typeof obj.settings === "object") ? obj.settings : { theme: "dark" },
   };
   // Back-compat: matches saved before the category field default to Competitive
@@ -1824,6 +1849,32 @@ function eventLabel(m) {
   if (m.testSessionId) return testSessionName(m.testSessionId);
   return "";
 }
+
+/* ---- Opponent archetype helpers (for the dropdown + matchups view) ---- */
+/** Unique sorted list of opponent deck names seen across all logged matches. */
+function knownOpponents() {
+  const set = new Set();
+  State.matches.forEach(m => { if (m.opponent && m.opponent.trim()) set.add(m.opponent.trim()); });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+/** Logger: switch the opponent select to a free-text box to add a new name. */
+function addNewOpponent() {
+  const sel = $("#mOpp"), inp = $("#mOppNew");
+  if (!sel || !inp) return;
+  sel.style.display = "none";
+  inp.style.display = "";
+  inp.value = "";
+  inp.focus();
+}
+/** Logger: if user picks "— none —" we just leave it; no special handling needed. */
+function onOppSelectChange() { /* reserved for future use */ }
+/** Read the opponent value from whichever input is active in the logger. */
+function readOpponentValue() {
+  const inp = $("#mOppNew");
+  if (inp && inp.style.display !== "none" && inp.value.trim()) return inp.value.trim();
+  const sel = $("#mOpp");
+  return sel ? sel.value.trim() : "";
+}
 /** Find a deck by id, including temporary frozen tournament-decklist objects. */
 function findDeck(id) {
   if (typeof _frozenDeckCache !== "undefined" && _frozenDeckCache[id]) return _frozenDeckCache[id];
@@ -1859,6 +1910,7 @@ const PAGE_META = {
   tournaments: ["Tournaments", "Your events, grouped run by run"],
   testing:   ["Testing", "Practice sessions — kept out of your competitive stats"],
   credits:   ["Store Credits", "Track credit you've earned and spent at each store"],
+  matchups:  ["Matchups", "Your record and game plan against each opponent deck"],
   settings:  ["Settings", "Backup, import, export, and reset your data"],
 };
 let currentPage = "dashboard";
@@ -1877,7 +1929,7 @@ function navigate(page) {
 }
 function renderPage(page) {
   ({ dashboard: renderDashboard, decks: renderDecks, logger: renderLogger,
-     history: renderHistory, tournaments: renderTournaments, testing: renderTesting, credits: renderCredits, settings: renderSettings }[page] || (() => {}))();
+     history: renderHistory, tournaments: renderTournaments, testing: renderTesting, credits: renderCredits, matchups: renderMatchups, settings: renderSettings }[page] || (() => {}))();
 }
 /** Re-render the active page + sidebar counters after any data change. */
 function refreshAll() {
@@ -2641,7 +2693,15 @@ function renderLogger(editId) {
       <div class="field"><label>${t("Date")}</label>
         <input class="input" type="date" id="mDate" value="${m ? m.date : todayISO()}"></div>
       <div class="field"><label>${t("Opponent Deck")}</label>
-        <input class="input" id="mOpp" placeholder="e.g. Gardevoir ex" value="${m ? esc(m.opponent) : ""}"></div>
+        <div style="display:flex;gap:8px">
+          <select class="select" id="mOpp" style="flex:1" onchange="onOppSelectChange()">
+            ${knownOpponents().map(o => `<option value="${esc(o)}" ${m && m.opponent === o ? "selected" : ""}>${esc(o)}</option>`).join("")}
+            <option value="">${t("— none —")}</option>
+          </select>
+          <button type="button" class="btn btn-ghost" style="white-space:nowrap" onclick="addNewOpponent()" title="${t("Add a new opponent deck")}">+ ${t("New")}</button>
+        </div>
+        <input class="input" id="mOppNew" placeholder="${t("Type the opponent deck name")}" style="display:none;margin-top:8px" value="${m && !knownOpponents().includes(m.opponent) && m.opponent ? esc(m.opponent) : ""}">
+      </div>
       <div class="field"><label>${t("Match Category")}</label>
         <div class="seg" id="mCategory">
           <label><input type="radio" name="cat" value="Competitive" onchange="syncCategoryUI()" ${m && matchCategory(m)==="Competitive" ? "checked" : ""}><span>🏅 ${t("Competitive")}</span></label>
@@ -2826,7 +2886,7 @@ function saveMatch(id) {
   }
   const obj = {
     deckId, date,
-    opponent: $("#mOpp").value.trim(),
+    opponent: readOpponentValue(),
     category,
     tournamentId,
     testSessionId,
@@ -4032,6 +4092,112 @@ function deleteEntry(storeId, entryId) {
   if (!s) return;
   s.entries = (s.entries || []).filter(x => x.id !== entryId);
   save(); viewStore(storeId); refreshAll(); toast("Entry removed.", "info");
+}
+
+/* ------------------------------------------------------------------ */
+/* 8d. MATCHUPS (per-deck record + game plan vs each opponent)        */
+/* ------------------------------------------------------------------ */
+/** Current matchups scope: which of the user's decks is selected. */
+let matchupDeckId = "";
+/** Stable key for a matchup note (deck + opponent). */
+function matchupKey(deckId, opp) { return deckId + "||" + opp; }
+/** Get / set the saved game-plan note for a matchup. */
+function getMatchupNote(deckId, opp) { return (State.matchupNotes && State.matchupNotes[matchupKey(deckId, opp)]) || ""; }
+
+/** Competitive matches of a deck vs a specific opponent. */
+function matchupMatches(deckId, opp) {
+  return State.matches.filter(m => isComp(m) && m.deckId === deckId && (m.opponent || "").trim() === opp);
+}
+
+function renderMatchups() {
+  const el = $("#page-matchups");
+  if (!State.decks.length) {
+    el.innerHTML = emptyState("⚔️", "No decks yet", "Create a deck and log some matches to build matchup data.",
+      `<button class="btn btn-primary" onclick="navigate('decks')">${t("Go to Decks")}</button>`);
+    return;
+  }
+  if (matchupDeckId && !State.decks.some(d => d.id === matchupDeckId)) matchupDeckId = "";
+  if (!matchupDeckId) matchupDeckId = State.decks[0].id;
+
+  const selector = `
+    <div class="dash-scope">
+      <label>${t("Matchups for")}</label>
+      <select class="select" id="matchupDeck" onchange="setMatchupDeck(this.value)">
+        ${State.decks.map(d => `<option value="${d.id}" ${matchupDeckId === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}
+      </select>
+    </div>`;
+
+  // Opponents this deck has faced in competitive play, ranked by games played.
+  const deckComp = State.matches.filter(m => isComp(m) && m.deckId === matchupDeckId);
+  const opps = [...new Set(deckComp.map(m => (m.opponent || "").trim()).filter(Boolean))];
+  const ranked = opps.map(o => ({ opp: o, s: tally(matchupMatches(matchupDeckId, o)) }))
+    .sort((a, b) => (b.s.total - a.s.total) || (b.s.wr - a.s.wr));
+
+  if (!ranked.length) {
+    el.innerHTML = selector + emptyState("⚔️", "No matchup data yet",
+      "Log some competitive matches with this deck to see how it performs against each opponent.",
+      `<button class="btn btn-primary" onclick="navigate('logger')">${t("Log a Match")}</button>`);
+    return;
+  }
+
+  el.innerHTML = selector + `<div class="grid deck-grid">${ranked.map((r, i) => {
+    const ms = matchupMatches(matchupDeckId, r.opp);
+    const s = r.s;
+    const first = tally(ms.filter(m => m.position === "First"));
+    const second = tally(ms.filter(m => m.position === "Second"));
+    const bo1 = tally(ms.filter(m => m.format === "BO1"));
+    const bo3 = tally(ms.filter(m => m.format === "BO3"));
+    const note = getMatchupNote(matchupDeckId, r.opp);
+    const small = s.total < 5;       // flag thin samples
+    return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
+      <div class="top">
+        <div class="deck-title-row" style="max-width:72%">
+          ${pokeSprite(r.opp, 40)}
+          <div><h3 style="font-size:17px">${t("vs")} ${esc(r.opp)}</h3>
+          <div class="created">${s.total} ${t("games")}${small ? ` · <span style="color:var(--draw)">${t("small sample")}</span>` : ""}</div></div>
+        </div>
+        <div class="wr-badge" style="color:${wrColor(s.wr)}">${s.wr}%</div>
+      </div>
+      <div class="deck-rank-bar"><i style="width:${s.wr}%"></i></div>
+      <div class="deck-stats">
+        <div class="deck-stat"><div class="k">${t("Record")}</div><div class="v">${s.record}</div></div>
+        <div class="deck-stat"><div class="k">${t("Win %")}</div><div class="v" style="color:${wrColor(s.wr)}">${s.wr}%</div></div>
+        <div class="deck-stat"><div class="k">${t("Going First")}</div><div class="v">${first.record} · ${first.wr}%</div></div>
+        <div class="deck-stat"><div class="k">${t("Going Second")}</div><div class="v">${second.record} · ${second.wr}%</div></div>
+        <div class="deck-stat"><div class="k">BO1</div><div class="v">${bo1.record} · ${bo1.wr}%</div></div>
+        <div class="deck-stat"><div class="k">BO3</div><div class="v">${bo3.record} · ${bo3.wr}%</div></div>
+      </div>
+      <div class="matchup-note">
+        <div class="note-label" style="margin-bottom:6px">📋 ${t("Game plan & key cards")}</div>
+        ${note ? `<p class="mu-note-text">${esc(note)}</p>` : `<p class="mu-note-empty">${t("No notes yet for this matchup.")}</p>`}
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openMatchupNote('${matchupDeckId}','${esc(r.opp).replace(/'/g,"\\'")}')">${note ? t("Edit notes") : t("Add notes")}</button>
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+function setMatchupDeck(id) { matchupDeckId = id; renderMatchups(); }
+
+/** Edit/save the game-plan note for a matchup. */
+function openMatchupNote(deckId, opp) {
+  const deck = State.decks.find(d => d.id === deckId);
+  const note = getMatchupNote(deckId, opp);
+  openModal(`
+    <h2>${esc(deck ? deck.name : "")} ${t("vs")} ${esc(opp)}</h2>
+    <p class="sub">${t("Your game plan, useful cards, and things to play around in this matchup.")}</p>
+    <div class="field"><label>${t("Game plan & key cards")}</label>
+      <textarea class="textarea" id="muNote" style="min-height:160px" placeholder="${t("e.g. Race the prize trade. Save Boss for their Kirlia. Tech: Counter Catcher. Play around Iono at low hand size.")}">${esc(note)}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">${t("Cancel")}</button>
+      <button class="btn btn-primary" onclick="saveMatchupNote('${deckId}','${esc(opp).replace(/'/g,"\\'")}')">${t("Save notes")}</button>
+    </div>`);
+  setTimeout(() => $("#muNote").focus(), 50);
+}
+function saveMatchupNote(deckId, opp) {
+  const val = $("#muNote").value.trim();
+  if (!State.matchupNotes) State.matchupNotes = {};
+  const key = matchupKey(deckId, opp);
+  if (val) State.matchupNotes[key] = val; else delete State.matchupNotes[key];
+  save(); closeModal(); renderMatchups(); toast("Matchup notes saved.", "success");
 }
 
 /* ------------------------------------------------------------------ */
