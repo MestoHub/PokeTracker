@@ -2462,6 +2462,13 @@ function renderCardGrid(id) {
 async function buildDeckCanvas(deck) {
   const parsed = parseDecklist(deck.decklist);
 
+  // Make sure the display font is loaded so canvas text metrics are correct
+  // (otherwise the count can mis-measure and overlap the section title).
+  try { if (document.fonts && document.fonts.load) {
+    await Promise.all([document.fonts.load("700 18px 'Chakra Petch'"), document.fonts.load("700 15px 'Chakra Petch'")]);
+    await document.fonts.ready;
+  } } catch (e) { /* fall back to default metrics */ }
+
   // Pre-load card images through the CORS proxy so the canvas stays exportable.
   // Each image has a timeout so one slow/stuck request can't hang the export;
   // any image that doesn't arrive just renders as a labelled placeholder tile.
@@ -2509,8 +2516,9 @@ async function buildDeckCanvas(deck) {
     x.fillStyle = color; x.fillRect(pad, y - 14, 5, 22);
     x.fillStyle = "#eef3ff"; x.font = "700 18px 'Chakra Petch', sans-serif";
     x.fillText(title, pad + 14, y + 4);
+    const titleW = x.measureText(title).width;          // measure WITH the title font
     x.fillStyle = color; x.font = "700 15px 'Chakra Petch', sans-serif";
-    x.fillText(`${count}`, pad + 22 + x.measureText(title).width, y + 4);
+    x.fillText(`${count}`, pad + 14 + titleW + 10, y + 4); // 10px gap after the title
     y += 22;
 
     cards.forEach((card, i) => {
