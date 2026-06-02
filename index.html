@@ -377,6 +377,8 @@ select.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xm
 
 /* segmented toggle (radio) groups */
 .seg{display:flex;gap:6px;background:var(--bg-2);padding:5px;border-radius:12px;border:1px solid var(--glass-border);flex-wrap:wrap}
+.mu-seg{margin-left:auto}
+.mu-seg span{font-size:12.5px}
 .seg label{flex:1;min-width:fit-content}
 .seg input{display:none}
 .seg span{display:block;text-align:center;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--txt-1);transition:all .18s;white-space:nowrap}
@@ -4105,14 +4107,22 @@ function deleteEntry(storeId, entryId) {
 /* ------------------------------------------------------------------ */
 /** Current matchups scope: which of the user's decks is selected. */
 let matchupDeckId = "";
+/** Matchups stats scope: "comp" | "test" | "all". */
+let matchupMode = "comp";
 /** Stable key for a matchup note (deck + opponent). */
 function matchupKey(deckId, opp) { return deckId + "||" + opp; }
 /** Get / set the saved game-plan note for a matchup. */
 function getMatchupNote(deckId, opp) { return (State.matchupNotes && State.matchupNotes[matchupKey(deckId, opp)]) || ""; }
 
-/** Competitive matches of a deck vs a specific opponent. */
+/** Does a match belong to the current matchup mode? */
+function matchInMode(m) {
+  if (matchupMode === "comp") return isComp(m);
+  if (matchupMode === "test") return isTesting(m);
+  return true;                                   // "all"
+}
+/** Matches of a deck vs a specific opponent, filtered by the current mode. */
 function matchupMatches(deckId, opp) {
-  return State.matches.filter(m => isComp(m) && m.deckId === deckId && (m.opponent || "").trim() === opp);
+  return State.matches.filter(m => matchInMode(m) && m.deckId === deckId && (m.opponent || "").trim() === opp);
 }
 
 function renderMatchups() {
@@ -4126,22 +4136,27 @@ function renderMatchups() {
   if (!matchupDeckId) matchupDeckId = State.decks[0].id;
 
   const selector = `
-    <div class="dash-scope">
+    <div class="dash-scope" style="flex-wrap:wrap;gap:12px">
       <label>${t("Matchups for")}</label>
       <select class="select" id="matchupDeck" onchange="setMatchupDeck(this.value)">
         ${State.decks.map(d => `<option value="${d.id}" ${matchupDeckId === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}
       </select>
+      <div class="seg mu-seg">
+        <label><input type="radio" name="muMode" value="comp" onchange="setMatchupMode('comp')" ${matchupMode==="comp"?"checked":""}><span>🏅 ${t("Competitive")}</span></label>
+        <label><input type="radio" name="muMode" value="test" onchange="setMatchupMode('test')" ${matchupMode==="test"?"checked":""}><span>🧪 ${t("Testing")}</span></label>
+        <label><input type="radio" name="muMode" value="all" onchange="setMatchupMode('all')" ${matchupMode==="all"?"checked":""}><span>${t("All")}</span></label>
+      </div>
     </div>`;
 
-  // Opponents this deck has faced in competitive play, ranked by games played.
-  const deckComp = State.matches.filter(m => isComp(m) && m.deckId === matchupDeckId);
-  const opps = [...new Set(deckComp.map(m => (m.opponent || "").trim()).filter(Boolean))];
+  // Opponents this deck has faced in the selected mode, ranked by games played.
+  const deckScoped = State.matches.filter(m => matchInMode(m) && m.deckId === matchupDeckId);
+  const opps = [...new Set(deckScoped.map(m => (m.opponent || "").trim()).filter(Boolean))];
   const ranked = opps.map(o => ({ opp: o, s: tally(matchupMatches(matchupDeckId, o)) }))
     .sort((a, b) => (b.s.total - a.s.total) || (b.s.wr - a.s.wr));
 
   if (!ranked.length) {
     el.innerHTML = selector + emptyState("⚔️", "No matchup data yet",
-      "Log some competitive matches with this deck to see how it performs against each opponent.",
+      "Log some matches with this deck to see how it performs against each opponent.",
       `<button class="btn btn-primary" onclick="navigate('logger')">${t("Log a Match")}</button>`);
     return;
   }
@@ -4182,6 +4197,7 @@ function renderMatchups() {
   }).join("")}</div>`;
 }
 function setMatchupDeck(id) { matchupDeckId = id; renderMatchups(); }
+function setMatchupMode(mode) { matchupMode = mode; renderMatchups(); }
 
 /** Edit/save the game-plan note for a matchup. */
 function openMatchupNote(deckId, opp) {
