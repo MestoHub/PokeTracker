@@ -35,7 +35,7 @@ window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
      window.ALLOWED_EMAILS = ["me@example.com", "friend@example.com"];
    NOTE: this is visible in the page source, so it's a friendly gate, not
    real security. For real enforcement, control sign-ups in Supabase. */
-window.ALLOWED_EMAILS = ["Gabriel.saia92@gmail.com", "mati.gm91@gmail.com", "julian_regueira@hotmail.com"];
+window.ALLOWED_EMAILS = [];
 </script>
 
 <!-- Fonts: distinctive display + clean body -->
@@ -676,6 +676,10 @@ const I18N = {
     "New Tournament": "Nuevo torneo",
     "Testing": "Pruebas",
     "Store Credits": "Créditos de tienda",
+    "Deck being tested": "Mazo en prueba",
+    "— choose later —": "— elegir luego —",
+    "The deck is locked once a session has matches.": "El mazo queda bloqueado cuando la sesión tiene partidas.",
+    "Locked to this testing session's deck": "Bloqueado al mazo de esta sesión de prueba",
     "Your Stores": "Tus tiendas",
     "Add Store": "Añadir tienda",
     "Edit Store": "Editar tienda",
@@ -1564,205 +1568,9 @@ function consistencyReport(parsed, opts = {}) {
 /* 2. SEED DATA (demo)                                                */
 /* ------------------------------------------------------------------ */
 function seed() {
-  const d = (name, daysAgo, list) => ({
-    id: uid(), name, created: new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10),
-    decklist: list || ""
-  });
-  const charizard = d("Charizard ex", 60,
-`Pokémon: 12
-3 Charmander OBF 26
-1 Charmeleon OBF 27
-3 Charizard ex OBF 125
-2 Pidgey MEW 16
-2 Pidgeot ex OBF 164
-1 Rotom V CRZ 45
-
-Trainer: 35
-4 Arven OBF 186
-3 Boss's Orders PAL 172
-4 Rare Candy SVI 191
-2 Iono PAL 185
-
-Energy: 13
-8 Fire Energy
-5 Basic Fire`);
-  const lostbox = d("Lost Box Comfey", 40,
-`Pokémon: 14
-4 Comfey LOR 79
-2 Sableye LOR 70
-1 Cramorant LOR 50
-2 Kyogre CEL 3
-1 Radiant Greninja ASR 46
-1 Mew CEL 11
-2 Manaphy BRS 41
-
-Trainer: 34
-4 Colress's Experiment LOR 155
-3 Iono PAL 185
-4 Battle VIP Pass FST 225
-4 Quick Ball FST 237
-4 Nest Ball SVI 181
-3 Super Rod PAL 188
-2 Switch SVI 194
-
-Energy: 12
-4 Basic Water Energy
-4 Basic Psychic Energy
-4 Basic Fighting Energy`);
-  const gardevoir = d("Gardevoir ex", 25,
-`Pokémon: 17
-4 Ralts ASR 60
-1 Kirlia CRZ 56
-3 Kirlia SIT 68
-3 Gardevoir ex SVI 86
-1 Gardevoir CRZ 69
-1 Zacian V CEL 16
-1 Cresselia LOR 74
-2 Manaphy BRS 41
-1 Radiant Greninja ASR 46
-
-Trainer: 28
-4 Arven OBF 186
-3 Iono PAL 185
-2 Boss's Orders PAL 172
-4 Battle VIP Pass FST 225
-4 Ultra Ball SVI 196
-2 Level Ball BST 129
-3 Rare Candy SVI 191
-
-Energy: 15
-11 Basic Psychic Energy
-4 Reversal Energy PAL 192`);
-  const lugia = d("Lugia VSTAR", 12,
-`Pokémon: 14
-4 Lugia V SIT 138
-3 Lugia VSTAR SIT 139
-4 Archeops SIT 147
-1 Lumineon V BRS 40
-1 Radiant Charizard CRZ 20
-1 Stoutland V LOR 137
-
-Trainer: 33
-4 Professor's Research SVI 189
-3 Iono PAL 185
-2 Boss's Orders PAL 172
-4 Capturing Aroma SIT 153
-4 Ultra Ball SVI 196
-3 Nest Ball SVI 181
-
-Energy: 13
-4 Double Turbo Energy BRS 151
-4 Jet Energy PAL 190
-5 Basic Water Energy`);
-  State.decks = [charizard, lostbox, gardevoir, lugia];
-
-  const opps = ["Gardevoir ex", "Mew VMAX", "Lost Box", "Miraidon ex", "Chien-Pao ex", "Charizard ex", "Snorlax Stall", "Giratina VSTAR", "Roaring Moon ex"];
-  const events = ["Local League", "Regional Championship", "Online Ladder", "City League", "Weekly Cup", ""];
-  const matches = [];
-  let day = 58;
-  // Generate a believable spread of matches across decks/formats
-  for (let i = 0; i < 46; i++) {
-    const deck = State.decks[Math.floor(Math.random() * Math.min(State.decks.length, i < 30 ? 3 : 4))];
-    const bo3 = Math.random() > 0.45;
-    const first = Math.random() > 0.5;
-    const online = Math.random() > 0.5;
-    const winRoll = Math.random() < (first ? 0.6 : 0.46);  // going first slightly favored
-    const drawRoll = !bo3 && Math.random() < 0.06;
-    let result, score = "";
-    if (drawRoll) result = "Draw";
-    else if (bo3) {
-      result = winRoll ? "Match Win" : "Match Loss";
-      score = winRoll ? (Math.random() > 0.5 ? "2-0" : "2-1") : (Math.random() > 0.5 ? "0-2" : "1-2");
-    } else result = winRoll ? "Win" : "Loss";
-    day -= Math.floor(Math.random() * 2) + 1;
-    // ~14% of games involve a brick; bricking correlates with losing.
-    const bricked = Math.random() < (isWinResult(result) ? 0.05 : 0.26);
-    const sampleNotes = [
-      "Opponent misplayed their Boss's Orders — punished it.",
-      "Prized a key piece, had to play around it all game.",
-      "Dead-drew for two turns but stabilized.",
-      "Tight prize race, won on the last turn.",
-      "Mulligan into a slow start.",
-      "Great opener, set up turn one.", ""
-    ];
-    matches.push({
-      id: uid(), deckId: deck.id,
-      date: new Date(Date.now() - day * 864e5).toISOString().slice(0, 10),
-      opponent: opps[Math.floor(Math.random() * opps.length)],
-      notes: "",
-      extraNotes: bricked ? "Bricked early — couldn't get an attacker online." : sampleNotes[Math.floor(Math.random() * sampleNotes.length)],
-      bricked,
-      category: "Competitive",
-      format: bo3 ? "BO3" : "BO1",
-      position: first ? "First" : "Second",
-      type: online ? "Online" : "In Person",
-      result, score
-    });
-  }
-  matches.sort((a, b) => a.date.localeCompare(b.date));
-  State.matches = matches;
-
-  // --- seed a couple of tournaments and attach some recent matches ---
-  const t = (name, daysAgo, type, placement, notes) => ({
-    id: uid(), name, date: new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10),
-    type, placement, notes
-  });
-  const regional = t("São Paulo Regional", 9, "Regional", "Top 16 / 312", "Lost win-and-in round 8 to Gardevoir. Should have benched the Manaphy turn 1.");
-  const weekly = t("Tuesday Night Weekly", 4, "Local", "2nd / 18", "Good prep run. Mirror matchup felt close.");
-  State.tournaments = [regional, weekly];
-  // attach the last 8 in-person matches to the regional, and 3 before that to the weekly
-  const inPerson = matches.filter(m => m.type === "In Person");
-  inPerson.slice(-8).forEach(m => m.tournamentId = regional.id);
-  inPerson.slice(-12, -8).forEach(m => m.tournamentId = weekly.id);
-
-  // --- seed a testing session with some practice games (kept out of competitive stats) ---
-  const testDeck = State.decks[0];
-  const v1 = { id: uid(), n: 1, date: new Date(Date.now() - 11 * 864e5).toISOString().slice(0, 10),
-    decklist: testDeck.decklist || "", overrides: testDeck.overrides ? { ...testDeck.overrides } : null,
-    deckName: testDeck.name, reason: "Starting list — stock Charizard." };
-  const v2 = { id: uid(), n: 2, date: new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10),
-    decklist: testDeck.decklist || "", overrides: testDeck.overrides ? { ...testDeck.overrides } : null,
-    deckName: testDeck.name, reason: "-2 Counter Catcher, +2 Boss's Orders — needed reliable gust vs Gardevoir." };
-  const testSession = {
-    id: uid(), name: "Pre-Regional Testing", date: new Date(Date.now() - 11 * 864e5).toISOString().slice(0, 10),
-    notes: "Goldfishing the Charizard list and testing the Gardevoir matchup.",
-    versions: [v1, v2], currentVersionId: v2.id
-  };
-  State.testSessions = [testSession];
-  // create ~12 dedicated testing matches (NOT counted in competitive numbers),
-  // split across the two versions so the per-version breakdown is visible.
-  for (let i = 0; i < 12; i++) {
-    const onV1 = i < 5;                       // first 5 on V1, rest on V2
-    const ver = onV1 ? v1 : v2;
-    const first = Math.random() > 0.5, bo3 = Math.random() > 0.5;
-    const win = Math.random() < (onV1 ? 0.5 : 0.72);   // V2 tests better, on purpose
-    matches.push({
-      id: uid(), deckId: testDeck.id,
-      date: new Date(Date.now() - ((onV1 ? 11 : 6) - Math.floor((onV1 ? i : i - 5) / 2)) * 864e5).toISOString().slice(0, 10),
-      opponent: opps[Math.floor(Math.random() * opps.length)],
-      notes: "", extraNotes: "Practice game.",
-      bricked: Math.random() < 0.12,
-      category: "Testing", testSessionId: testSession.id, testVersionId: ver.id,
-      format: bo3 ? "BO3" : "BO1",
-      position: first ? "First" : "Second",
-      type: "Online",
-      result: bo3 ? (win ? "Match Win" : "Match Loss") : (win ? "Win" : "Loss"),
-      score: bo3 ? (win ? "2-1" : "1-2") : ""
-    });
-  }
-  State.matches = matches;
-
-  // --- seed a sample store with a few credit entries ---
-  State.stores = [{
-    id: uid(), name: "Dragon's Den Games",
-    entries: [
-      { id: uid(), kind: "earn", date: new Date(Date.now() - 9 * 864e5).toISOString().slice(0,10), amount: 40, label: "Regional Top 16", note: "" },
-      { id: uid(), kind: "earn", date: new Date(Date.now() - 4 * 864e5).toISOString().slice(0,10), amount: 15, label: "Tuesday Weekly 2nd", note: "" },
-      { id: uid(), kind: "spend", date: new Date(Date.now() - 2 * 864e5).toISOString().slice(0,10), amount: 25, label: "Booster box", note: "Surging Sparks" },
-    ]
-  }];
-
-  State.settings = { theme: "dark" };
+  // New / empty accounts start completely blank — no demo data.
+  // The user builds their own decks, matches, etc. from scratch.
+  State = { decks: [], matches: [], tournaments: [], testSessions: [], stores: [], matchupNotes: {}, settings: { theme: "dark" } };
   save();
 }
 
@@ -2803,6 +2611,9 @@ function syncCategoryUI() {
   const tf = $("#tournamentField"), sf = $("#testField");
   if (tf) tf.style.display = cat === "Competitive" ? "" : "none";
   if (sf) sf.style.display = cat === "Testing" ? "" : "none";
+  // Deck lock only applies in Testing mode with a locked session.
+  if (cat === "Testing") { lockLoggerDeckToSession(); }
+  else { const ds = $("#mDeck"); if (ds) { ds.disabled = false; ds.title = ""; } }
 }
 /** When a session/tournament is chosen, force the matching category radio. */
 function syncCategoryFromLinks() {
@@ -2816,6 +2627,22 @@ function syncCategoryFromLinks() {
 function onTestSessionChange() {
   syncCategoryFromLinks();
   populateVersionPicker();
+  lockLoggerDeckToSession();
+}
+/** If the chosen testing session is locked to a deck, set + lock the deck select. */
+function lockLoggerDeckToSession() {
+  const sessSel = $("#mTestSession"), deckSel = $("#mDeck");
+  if (!sessSel || !deckSel) return;
+  const ts = State.testSessions.find(x => x.id === sessSel.value);
+  if (ts && ts.deckId && State.decks.find(d => d.id === ts.deckId)) {
+    deckSel.value = ts.deckId;
+    deckSel.disabled = true;
+    deckSel.title = t("Locked to this testing session's deck");
+    if (typeof updateDeckSprite === "function") updateDeckSprite();
+  } else {
+    deckSel.disabled = false;
+    deckSel.title = "";
+  }
 }
 /**
  * Fill the version dropdown for the currently-selected testing session.
@@ -3475,6 +3302,8 @@ function addTestVersion(sid, decklist, reason, deckName, overrides) {
 
 /** Primary deck of a testing session = most-used deck across its matches. */
 function testPrimaryDeckId(ts) {
+  // A session locked to a deck always reports that deck.
+  if (ts.deckId && State.decks.find(d => d.id === ts.deckId)) return ts.deckId;
   if (ts.snapshotDeckId && State.decks.find(d => d.id === ts.snapshotDeckId)) return ts.snapshotDeckId;
   const ms = testMatches(ts.id);
   if (!ms.length) return null;
@@ -3541,7 +3370,9 @@ function renderTesting() {
   el.innerHTML = head + note + `<div class="grid deck-grid">${sorted.map((ts, i) => {
     const ms = testMatches(ts.id);
     const s = tally(ms);
-    const decksUsed = [...new Set(ms.map(m => m.deckId))].map(deckName).filter(Boolean);
+    let decksUsed = [...new Set(ms.map(m => m.deckId))].map(deckName).filter(Boolean);
+    // If locked to a deck but no matches yet, still show the chosen deck name.
+    if (!decksUsed.length && ts.deckId) { const d = State.decks.find(x => x.id === ts.deckId); if (d) decksUsed = [d.name]; }
     const primaryDeckId = testPrimaryDeckId(ts);
     const hasList = !!(ts.decklistSnapshot || (primaryDeckId && State.decks.find(d => d.id === primaryDeckId)?.decklist));
     return `<div class="deck-card glass" style="animation-delay:${i*0.04}s">
@@ -3572,6 +3403,8 @@ function renderTesting() {
 /** Create / edit a testing session. */
 function openTestModal(id) {
   const ts = id ? State.testSessions.find(x => x.id === id) : null;
+  const hasMatches = ts ? testMatches(ts.id).length > 0 : false;
+  const deckOpts = State.decks.map(d => `<option value="${d.id}" ${ts && ts.deckId === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("");
   openModal(`
     <h2>${ts ? t("Edit Session") : t("New Session")}</h2>
     <p class="sub">${t("Group your practice games — these stay out of your competitive stats.")}</p>
@@ -3580,6 +3413,13 @@ function openTestModal(id) {
         <input class="input" id="tsName" placeholder="${t("e.g. Pre-Regional testing")}" value="${ts ? esc(ts.name) : ""}"></div>
       <div class="field"><label>${t("Date")}</label>
         <input class="input" type="date" id="tsDate" value="${ts ? ts.date : todayISO()}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>${t("Deck being tested")}</label>
+      <select class="select" id="tsDeck" ${hasMatches ? "disabled" : ""}>
+        <option value="">${t("— choose later —")}</option>
+        ${deckOpts}
+      </select>
+      ${hasMatches ? `<div style="font-size:11.5px;color:var(--txt-2);margin-top:6px">${t("The deck is locked once a session has matches.")}</div>` : ""}
     </div>
     <div class="field" style="margin-top:14px"><label>${t("Notes")} <span class="opt">${t("(optional)")}</span></label>
       <textarea class="textarea" id="tsNotes" placeholder="${t("What you're testing, hypotheses, changes to try...")}">${ts ? esc(ts.notes || "") : ""}</textarea></div>
@@ -3629,9 +3469,18 @@ function saveQuickTestSession() {
 function saveTestSession(id) {
   const name = $("#tsName").value.trim();
   if (!name) { toast("Session name is required.", "error"); return; }
+  const deckSel = $("#tsDeck");
   const obj = { name, date: $("#tsDate").value || todayISO(), notes: $("#tsNotes").value.trim() };
-  if (id) { Object.assign(State.testSessions.find(x => x.id === id), obj); toast("Session updated.", "success"); }
-  else { State.testSessions.push({ id: uid(), ...obj }); toast("Session created.", "success"); }
+  if (id) {
+    const existing = State.testSessions.find(x => x.id === id);
+    // Only update the locked deck if the select was editable (no matches yet).
+    if (deckSel && !deckSel.disabled) existing.deckId = deckSel.value || undefined;
+    Object.assign(existing, obj);
+    toast("Session updated.", "success");
+  } else {
+    State.testSessions.push({ id: uid(), ...obj, deckId: (deckSel && deckSel.value) || undefined });
+    toast("Session created.", "success");
+  }
   save(); closeModal(); refreshAll();
 }
 function deleteTestSession(id) {
@@ -4278,7 +4127,6 @@ function renderSettings() {
       <p>${t("Permanently delete all decks and matches from this browser. This cannot be undone.")}</p>
       <div class="settings-actions">
         <button class="btn btn-danger" onclick="resetData()">${t("Reset All Data")}</button>
-        <button class="btn btn-ghost" onclick="reseedData()">${t("Reload Demo Data")}</button>
       </div>
     </div>`;
 
@@ -4326,13 +4174,8 @@ function importData(file) {
 }
 function resetData() {
   confirmModal("Reset Everything?", "All decks and matches will be <b>permanently deleted</b>. This cannot be undone.",
-    () => { State = { decks: [], matches: [], tournaments: [], settings: State.settings }; save(); refreshAll(); navigate("dashboard"); toast("All data cleared.", "info"); }, "Delete All");
+    () => { State = { decks: [], matches: [], tournaments: [], testSessions: [], stores: [], matchupNotes: {}, settings: State.settings }; save(); refreshAll(); navigate("dashboard"); toast("All data cleared.", "info"); }, "Delete All");
 }
-function reseedData() {
-  confirmModal("Reload Demo Data?", "This replaces current data with the built-in example dataset.",
-    () => { seed(); applyTheme(); refreshAll(); navigate("dashboard"); toast("Demo data loaded.", "success"); });
-}
-
 /* ------------------------------------------------------------------ */
 /* 10. SHARED COMPONENTS                                              */
 /* ------------------------------------------------------------------ */
