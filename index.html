@@ -3182,6 +3182,18 @@ function viewTournament(id) {
   const rows = ms.map((m, i) => {
     const cls = isWin(m) ? "win" : isLoss(m) ? "loss" : "draw";
     const label = isWin(m) ? t("Win") : isLoss(m) ? t("Loss") : t("Draw");
+    const hasNotes = (m.notes && m.notes.trim()) || (m.extraNotes && m.extraNotes.trim());
+    const noteBtn = hasNotes
+      ? `<button class="btn btn-ghost btn-icon btn-sm" title="${t("View notes")}" onclick="toggleTournNote('${m.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>`
+      : "";
+    const detailRow = hasNotes
+      ? `<tr id="trnote-${m.id}" class="test-note-row" style="display:none"><td colspan="8">
+          <div class="test-note-inner">
+            ${m.notes && m.notes.trim() ? `<div class="note-block"><span class="note-label">📝 ${t("Notes")}</span><p>${esc(m.notes)}</p></div>` : ""}
+            ${m.extraNotes && m.extraNotes.trim() ? `<div class="note-block"><span class="note-label">📌 ${t("Extra Match Info")}</span><p>${esc(m.extraNotes)}</p></div>` : ""}
+          </div></td></tr>`
+      : "";
     return `<tr>
       <td style="color:var(--txt-2)">${t("Round")} ${i + 1}</td>
       <td><div class="cell-deck">${pokeSprite(deckName(m.deckId),24)}<b>${esc(deckName(m.deckId))}</b></div></td>
@@ -3190,9 +3202,12 @@ function viewTournament(id) {
       <td>${m.position === "First" ? t("1st") : t("2nd")}</td>
       <td><span class="pill ${cls}">${label}${m.score ? " " + m.score : ""}</span></td>
       <td>${m.bricked ? `<span class="pill loss">${t("🧱 Brick")}</span>` : ""}</td>
-      <td><button class="btn btn-ghost btn-icon btn-sm" title="${t("Unlink")}" onclick="unlinkMatch('${m.id}','${id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M18.84 12.25l1.72-1.71a4 4 0 00-5.66-5.66l-1.71 1.72M5.17 11.75l-1.72 1.71a4 4 0 005.66 5.66l1.71-1.72M8 12h8"/></svg></button></td>
-    </tr>`;
+      <td><div style="display:flex;gap:4px;justify-content:flex-end">
+        ${noteBtn}
+        <button class="btn btn-ghost btn-icon btn-sm" title="${t("Unlink")}" onclick="unlinkMatch('${m.id}','${id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M18.84 12.25l1.72-1.71a4 4 0 00-5.66-5.66l-1.71 1.72M5.17 11.75l-1.72 1.71a4 4 0 005.66 5.66l1.71-1.72M8 12h8"/></svg></button>
+      </div></td>
+    </tr>${detailRow}`;
   }).join("");
 
   openModal(`
@@ -3718,6 +3733,11 @@ function unlinkTestMatch(mid, sid) {
 /** Expand/collapse a testing match's notes row inside the session modal. */
 function toggleTestNote(mid) {
   const row = document.getElementById("tnote-" + mid);
+  if (row) row.style.display = row.style.display === "none" ? "" : "none";
+}
+/** Expand/collapse a tournament match's notes row inside the tournament modal. */
+function toggleTournNote(mid) {
+  const row = document.getElementById("trnote-" + mid);
   if (row) row.style.display = row.style.display === "none" ? "" : "none";
 }
 
